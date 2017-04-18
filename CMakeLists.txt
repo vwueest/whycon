@@ -63,7 +63,7 @@ include_directories(
   ${catkin_INCLUDE_DIRS} ${YAML_CPP_INCLUDE_DIRS} include
 )
 
-add_library(whycon SHARED src/lib/circle_detector.cpp src/lib/many_circle_detector.cpp src/lib/localization_system.cpp)
+add_library(whycon SHARED src/lib/circle_detector.cpp src/lib/many_circle_detector.cpp src/lib/localization_system.cpp src/lib/ocam_functions.cpp)
 target_link_libraries(whycon ${OpenCV_LIBS} ${Boost_LIBRARIES})
 
 if(NOT DISABLE_ROS)
