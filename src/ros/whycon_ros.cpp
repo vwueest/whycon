@@ -59,6 +59,7 @@ whycon::WhyConROS::WhyConROS(ros::NodeHandle& n) : is_tracking(false), should_re
 
     image_pub = n.advertise<sensor_msgs::Image>("image_out", 1);
     poses_pub = n.advertise<geometry_msgs::PoseArray>("poses", 1);
+    pixel_pub = n.advertise<geometry_msgs::Point>("pixel_coord", 1);
     context_pub = n.advertise<sensor_msgs::Image>("context", 1);
     projection_pub = n.advertise<whycon::Projection>("projection", 1);
 
@@ -106,9 +107,10 @@ bool whycon::WhyConROS::reset(std_srvs::Empty::Request& request, std_srvs::Empty
 void whycon::WhyConROS::publish_results(const std_msgs::Header& header, const cv_bridge::CvImageConstPtr& cv_ptr)
 {
     bool publish_images = (image_pub.getNumSubscribers() != 0);
-    bool publish_poses = (poses_pub.getNumSubscribers() != 0);
+    bool publish_poses  = (poses_pub.getNumSubscribers() != 0);
+    bool publish_pixels = (pixel_pub.getNumSubscribers() != 0);
 
-    if (!publish_images && !publish_poses) return;
+    if (!publish_images && !publish_poses && !publish_pixels) return;
 
     // prepare image output
     cv::Mat output_image;
@@ -121,6 +123,7 @@ void whycon::WhyConROS::publish_results(const std_msgs::Header& header, const cv
     for (int i = 0; i < system->targets; i++) {
         const whycon::CircleDetector::Circle& circle = system->get_circle(i);
         whycon::LocalizationSystem::Pose pose;
+
         if (!use_omni_model) {
             pose = system->get_pose(circle);
         } else {
@@ -186,6 +189,15 @@ void whycon::WhyConROS::publish_results(const std_msgs::Header& header, const cv
             transform.setOrigin( tf::Vector3( pose.pos(0), pose.pos(1), pose.pos(2) ) );
             transform.setRotation( tf::createQuaternionFromRPY(0, pose.rot(0), pose.rot(1)) );
             tf_broadcaster.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "base_link", "tag"+std::to_string(i)));
+        }
+
+        if (publish_pixels) {
+            geometry_msgs::Point p;
+            p.x = circle.x;
+            p.y = circle.y;
+            p.z = 0;
+            pixel_pub.publish(p);
+            //ROS_INFO("printing pixel: %f %f %f",p.x,p.y,p.z);
         }
     }
 

@@ -6,6 +6,7 @@
 #include <image_transport/image_transport.h>
 #include <image_geometry/pinhole_camera_model.h>
 #include <std_srvs/Empty.h>
+#include <opencv2/imgproc/imgproc.hpp>
 #include <tf/tf.h>
 #include <tf/transform_broadcaster.h>
 #include "ocam_functions.h"
@@ -46,7 +47,7 @@ private:
     image_transport::CameraSubscriber cam_sub;
     ros::ServiceServer reset_service;
 
-    ros::Publisher image_pub, poses_pub, context_pub, projection_pub;
+    ros::Publisher image_pub, poses_pub, context_pub, projection_pub, pixel_pub;
     boost::shared_ptr<tf::TransformBroadcaster>	transform_broadcaster;
     tf::TransformBroadcaster tf_broadcaster;
 

@@ -8,6 +8,7 @@
 
   <arg name="publish_tf" default="false"/>
   <arg name="use_omni_model" default="true"/>
+  <arg name="cable_length" default="0.3"/>
 
   <!--include file="$(find bluefox2)/launch/single_nodelet.launch">
     <arg name="calib_url" default="file://${ROS_HOME}/camera_info/$(arg camera_name).yaml"/>
@@ -31,6 +32,7 @@
     <param name="publish_tf" type="bool" value="$(arg publish_tf)"/>
     <param name="calib_file" value="$(find whycon)/config/calib_results.txt"/>
     <rosparam file="$(find whycon)/config/setup.yaml"/>
+    <param name="cable_length" value="$(arg cable_length)"/>
   </node>
 
   <!--node name="robot_pose_publisher" type="robot_pose_publisher" pkg="whycon"/-->
