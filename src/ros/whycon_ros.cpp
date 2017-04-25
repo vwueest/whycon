@@ -59,7 +59,7 @@ whycon::WhyConROS::WhyConROS(ros::NodeHandle& n) : is_tracking(false), should_re
 
     image_pub = n.advertise<sensor_msgs::Image>("image_out", 1);
     poses_pub = n.advertise<geometry_msgs::PoseArray>("poses", 1);
-    pixel_pub = n.advertise<geometry_msgs::Point>("pixel_coord", 1);
+    pixel_pub = n.advertise<geometry_msgs::PointStamped>("pixel_coord", 1);
     context_pub = n.advertise<sensor_msgs::Image>("context", 1);
     projection_pub = n.advertise<whycon::Projection>("projection", 1);
 
@@ -192,10 +192,12 @@ void whycon::WhyConROS::publish_results(const std_msgs::Header& header, const cv
         }
 
         if (publish_pixels) {
-            geometry_msgs::Point p;
-            p.x = circle.x;
-            p.y = circle.y;
-            p.z = 0;
+            geometry_msgs::PointStamped p;
+            p.point.x = circle.x;
+            p.point.y = circle.y;
+            p.point.z = 0;
+            p.header = header;
+            p.header.frame_id = frame_id;
             pixel_pub.publish(p);
             //ROS_INFO("printing pixel: %f %f %f",p.x,p.y,p.z);
         }
