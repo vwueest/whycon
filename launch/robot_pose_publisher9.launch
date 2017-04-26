@@ -3,10 +3,11 @@
   <arg name="device" default="25001195"/>
   <arg name="camera_name" default="mv_$(arg device)"/>
   <arg name="fps" default="50"/>
-  <arg name="expose_us" default="5000"/>
-  <arg name="gain_db" default="10"/>
+  <arg name="expose_us" default="8000"/>
+  <arg name="gain_db" default="15"/>
 
-  <arg name="publish_tf" default="false"/>
+  <arg name="publish_tf" default="true"/>
+  <arg name="cable_length" default="0.2315"/>
   <arg name="use_omni_model" default="true"/>
 
   <!--group ns="camera">
@@ -30,7 +31,7 @@
     <param name="max_attempts" value="1"/>
     <param name="outer_diameter" value="0.03"/>
     <param name="inner_diameter" value="0.0123"/>
-
+    <param name="cable_length" value="$(arg cable_length)"/>
     <param name="use_omni_model" type="bool" value="$(arg use_omni_model)"/>
     <param name="publish_tf" type="bool" value="$(arg use_omni_model)"/>
     <param name="calib_file" value="$(find whycon)/config/calib_results_$(arg camera_name).txt"/>
