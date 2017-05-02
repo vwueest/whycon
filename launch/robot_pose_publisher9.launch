@@ -3,8 +3,8 @@
   <arg name="device" default="25001195"/>
   <arg name="camera_name" default="mv_$(arg device)"/>
   <arg name="fps" default="50"/>
-  <arg name="expose_us" default="8000"/>
-  <arg name="gain_db" default="15"/>
+  <arg name="expose_us" default="5000"/>
+  <arg name="gain_db" default="35"/>
 
   <arg name="publish_tf" default="true"/>
   <arg name="cable_length" default="0.2315"/>
