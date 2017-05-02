@@ -32,6 +32,7 @@
     <param name="outer_diameter" value="0.03"/>
     <param name="inner_diameter" value="0.0123"/>
     <param name="cable_length" value="$(arg cable_length)"/>
+    
     <param name="use_omni_model" type="bool" value="$(arg use_omni_model)"/>
     <param name="publish_tf" type="bool" value="$(arg use_omni_model)"/>
     <param name="calib_file" value="$(find whycon)/config/calib_results_$(arg camera_name).txt"/>

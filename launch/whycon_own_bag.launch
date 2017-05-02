@@ -1,14 +1,11 @@
 <launch>
   
-  <!--arg name="device" default="25000836"/>
+  <arg name="device" default="25001195"/>
   <arg name="camera_name" default="mv_$(arg device)"/>
-  <arg name="fps" default="50"/>
-  <arg name="expose_us" default="8500"/>
-  <arg name="gain_db" default="0"/-->
 
   <arg name="publish_tf" default="false"/>
   <arg name="use_omni_model" default="true"/>
-  <arg name="cable_length" default="0.3"/>
+  <arg name="cable_length" default="0.2315"/>
 
   <!--include file="$(find bluefox2)/launch/single_nodelet.launch">
     <arg name="calib_url" default="file://${ROS_HOME}/camera_info/$(arg camera_name).yaml"/>
@@ -24,15 +21,15 @@
     <param name="axis" value="test"/>
     <param name="targets" value="1"/>
     <param name="max_refine" value="1"/>
-    <param name="max_attempts" value="5"/>
+    <param name="max_attempts" value="1"/>
     <param name="outer_diameter" value="0.03"/>
     <param name="inner_diameter" value="0.0123"/>
+    <param name="cable_length" value="$(arg cable_length)"/>
 
     <param name="use_omni_model" type="bool" value="$(arg use_omni_model)"/>
-    <param name="publish_tf" type="bool" value="$(arg publish_tf)"/>
-    <param name="calib_file" value="$(find whycon)/config/calib_results.txt"/>
-    <rosparam file="$(find whycon)/config/setup.yaml"/>
-    <param name="cable_length" value="$(arg cable_length)"/>
+    <param name="publish_tf" type="bool" value="$(arg use_omni_model)"/>
+    <param name="calib_file" value="$(find whycon)/config/calib_results_$(arg camera_name).txt"/>
+    <rosparam file="$(find whycon)/config/setup_$(arg camera_name).yaml"/>
   </node>
 
   <!--node name="robot_pose_publisher" type="robot_pose_publisher" pkg="whycon"/-->
