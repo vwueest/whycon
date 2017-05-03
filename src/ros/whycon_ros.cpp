@@ -64,8 +64,8 @@ whycon::WhyConROS::WhyConROS(ros::NodeHandle& n) : is_tracking(false), should_re
     }
 
     image_pub = n.advertise<sensor_msgs::Image>("image_out", 1);
-    poses_pub = n.advertise<geometry_msgs::PoseArray>("poses", 1);
-    poses_world_pub = n.advertise<geometry_msgs::PoseArray>("poses_world", 1);
+    poses_pub = n.advertise<geometry_msgs::PoseStamped>("poses", 1);
+    poses_world_pub = n.advertise<geometry_msgs::PoseStamped>("poses_world", 1);
     pixel_pub = n.advertise<geometry_msgs::PointStamped>("pixel_coord", 1);
     context_pub = n.advertise<sensor_msgs::Image>("context", 1);
     projection_pub = n.advertise<whycon::Projection>("projection", 1);
@@ -118,15 +118,15 @@ void whycon::WhyConROS::publish_results(const std_msgs::Header& header, const cv
     bool publish_poses_world  = (poses_world_pub.getNumSubscribers() != 0);
     bool publish_pixels = (pixel_pub.getNumSubscribers() != 0);
 
-    if (!publish_images && !publish_poses && !publish_pixels) return;
+    if (!publish_images && !publish_poses && !publish_pixels && !publish_poses_world) return;
 
     // prepare image output
     cv::Mat output_image;
     if (publish_images)
         output_image = cv_ptr->image.clone();
 
-    geometry_msgs::PoseArray pose_array;
-    geometry_msgs::PoseArray pose_world_array;
+    // geometry_msgs::PoseArray pose_array;
+    // geometry_msgs::PoseArray pose_world_array;
 
     // go through detected targets
     for (int i = 0; i < system->targets; i++) {
@@ -180,28 +180,25 @@ void whycon::WhyConROS::publish_results(const std_msgs::Header& header, const cv
         }
 
         if (publish_poses) {
-            geometry_msgs::Pose p;
-            p.position.x = pose.pos(0);
-            p.position.y = pose.pos(1);
-            p.position.z = pose.pos(2);
-            p.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, pose.rot(0), pose.rot(1));
-            pose_array.poses.push_back(p);
-
-            //geometry_msgs::Pose p;
-            //p.position.x = circle.x;
-            //p.position.y = circle.y;
-            //p.position.z = 0.0;
-            //p.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
-            //pose_array.poses.push_back(p);
+            geometry_msgs::PoseStamped p;
+            p.pose.position.x = pose.pos(0);
+            p.pose.position.y = pose.pos(1);
+            p.pose.position.z = pose.pos(2);
+            p.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, pose.rot(0), pose.rot(1));
+            p.header = header;
+            p.header.frame_id = frame_id;
+            poses_pub.publish(p);
         }
 
         if (publish_poses_world) {
-            geometry_msgs::Pose p_world;
-            p_world.position.x = pose_world.pos(0);
-            p_world.position.y = pose_world.pos(1);
-            p_world.position.z = pose_world.pos(2);
-            p_world.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, pose.rot(0), pose.rot(1));
-            pose_world_array.poses.push_back(p_world);
+            geometry_msgs::PoseStamped p_world;
+            p_world.pose.position.x = pose_world.pos(0);
+            p_world.pose.position.y = pose_world.pos(1);
+            p_world.pose.position.z = pose_world.pos(2);
+            p_world.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, pose.rot(0), pose.rot(1));
+            p_world.header = header;
+            p_world.header.frame_id = frame_id;
+            poses_world_pub.publish(p_world);
         }
 
         if (publish_tf) {
@@ -231,17 +228,17 @@ void whycon::WhyConROS::publish_results(const std_msgs::Header& header, const cv
         image_pub.publish(output_image_bridge);
     }
 
-    if (publish_poses) {
-        pose_array.header = header;
-        pose_array.header.frame_id = frame_id;
-        poses_pub.publish(pose_array);
-    }
+//    if (publish_poses) {
+//        pose_array.header = header;
+//        pose_array.header.frame_id = frame_id;
+//        poses_pub.publish(pose_array);
+//    }
 
-    if (publish_poses_world) {
-        pose_world_array.header = header;
-        pose_world_array.header.frame_id = frame_id;
-        poses_world_pub.publish(pose_world_array);
-    }
+//    if (publish_poses_world) {
+//        pose_world_array.header = header;
+//        pose_world_array.header.frame_id = frame_id;
+//        poses_world_pub.publish(pose_world_array);
+//    }
 
     if (transformation_loaded)
     {
