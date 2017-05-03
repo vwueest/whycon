@@ -58,6 +58,11 @@ find_package(Boost COMPONENTS program_options thread system REQUIRED)
 find_package(PkgConfig)
 pkg_check_modules(YAML_CPP yaml-cpp)
 
+
+## add Eigen
+find_package(Eigen3 REQUIRED)
+include_directories(${Eigen_INCLUDE_DIRS})
+
 ### TARGETS ###
 include_directories(
   ${catkin_INCLUDE_DIRS} ${YAML_CPP_INCLUDE_DIRS} include
