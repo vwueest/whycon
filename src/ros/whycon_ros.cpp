@@ -15,8 +15,9 @@ whycon::WhyConROS::WhyConROS(ros::NodeHandle& n) : is_tracking(false), should_re
 
     if (!n.getParam("targets", targets)) throw std::runtime_error("Private parameter \"targets\" is missing");
 
-    std::string vicon_quad_topic;
+    std::string vicon_quad_topic, vicon_payload_topic;
     n.param("vicon_quad_topic", vicon_quad_topic, std::string(""));
+    n.param("vicon_payload_topic", vicon_payload_topic, std::string(""));
     n.param("name", frame_id, std::string("whycon"));
     n.param("world_frame", world_frame_id, std::string("world"));
     n.param("max_attempts", max_attempts, 1);
@@ -28,6 +29,8 @@ whycon::WhyConROS::WhyConROS(ros::NodeHandle& n) : is_tracking(false), should_re
     n.param("use_omni_model", use_omni_model, false);
     n.param("calib_file", calib_file, std::string(""));
     n.param("publish_tf", publish_tf, false);
+    n.param("publish_vicon", publish_vicon, false);
+    n.param("transform_to_world_frame", transform_to_world_frame, false);
 
     B_T_BC = cv::Vec3d(B_T_BC_yaml[0], B_T_BC_yaml[1], B_T_BC_yaml[2]);
     R_BC = cv::Matx33d(R_BC_yaml[0], R_BC_yaml[1], R_BC_yaml[2],\
@@ -48,10 +51,15 @@ whycon::WhyConROS::WhyConROS(ros::NodeHandle& n) : is_tracking(false), should_re
     load_transforms();
     //transform_broadcaster = boost::make_shared<tf::TransformBroadcaster>();
 
-    transform_to_world_frame = !vicon_quad_topic.empty();
-    if (transform_to_world_frame) {
-        vicon_quad_sub = n.subscribe(vicon_quad_topic.c_str(), 10, &whycon::WhyConROS::vicon_quad_callback, this);
-        ROS_INFO("subscribed to odometry msg");
+    //transform_to_world_frame = !vicon_quad_topic.empty();
+    if (transform_to_world_frame || publish_vicon) {
+        vicon_quad_sub = n.subscribe(vicon_quad_topic.c_str(), 100, &whycon::WhyConROS::vicon_quad_callback, this);
+        ROS_INFO("subscribed to odometry msg quadrotor: %s", vicon_quad_topic.c_str());
+    }
+
+    if (publish_vicon) {
+        vicon_payload_sub = n.subscribe(vicon_payload_topic.c_str(), 100, &whycon::WhyConROS::vicon_payload_callback, this);
+        ROS_INFO("subscribed to odometry msg payload: %s",vicon_payload_topic.c_str());
     }
 
     /* initialize ros */
@@ -66,6 +74,7 @@ whycon::WhyConROS::WhyConROS(ros::NodeHandle& n) : is_tracking(false), should_re
     image_pub = n.advertise<sensor_msgs::Image>("image_out", 1);
     poses_pub = n.advertise<geometry_msgs::PoseStamped>("poses", 1);
     poses_world_pub = n.advertise<geometry_msgs::PoseStamped>("poses_world", 1);
+    poses_vicon_pub = n.advertise<geometry_msgs::PoseStamped>("poses_vicon", 1);
     pixel_pub = n.advertise<geometry_msgs::PointStamped>("pixel_coord", 1);
     context_pub = n.advertise<sensor_msgs::Image>("context", 1);
     projection_pub = n.advertise<whycon::Projection>("projection", 1);
@@ -117,8 +126,9 @@ void whycon::WhyConROS::publish_results(const std_msgs::Header& header, const cv
     bool publish_poses  = (poses_pub.getNumSubscribers() != 0);
     bool publish_poses_world  = (poses_world_pub.getNumSubscribers() != 0);
     bool publish_pixels = (pixel_pub.getNumSubscribers() != 0);
+    bool publish_vicon = (poses_vicon_pub.getNumSubscribers() != 0);
 
-    if (!publish_images && !publish_poses && !publish_pixels && !publish_poses_world) return;
+    if (!publish_images && !publish_poses && !publish_pixels && !publish_poses_world && !publish_vicon) return;
 
     // prepare image output
     cv::Mat output_image;
@@ -163,7 +173,8 @@ void whycon::WhyConROS::publish_results(const std_msgs::Header& header, const cv
             //ros::getGlobalCallbackQueue()->callAvailable(ros::WallDuration(0));
             //ros::spinOnce();
             pose.pos = (B_T_BC + dist * direction) * ( cable_length + distance_tag_CoG ) / cable_length;
-            pose_world.pos = R_WB * pose.pos;
+            if (transform_to_world_frame)
+                pose_world.pos = R_WB * pose.pos;
             //ROS_INFO("position in quad frame:\nx:%f y:%f z:%f",pose.pos(0),pose.pos(1),pose.pos(2));
         }
         cv::Vec3f coord = pose.pos;
@@ -195,10 +206,27 @@ void whycon::WhyConROS::publish_results(const std_msgs::Header& header, const cv
             p_world.pose.position.x = pose_world.pos(0);
             p_world.pose.position.y = pose_world.pos(1);
             p_world.pose.position.z = pose_world.pos(2);
-            p_world.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, pose.rot(0), pose.rot(1));
+            // p_world.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, pose_world.rot(0), pose_world.rot(1));
             p_world.header = header;
             p_world.header.frame_id = frame_id;
             poses_world_pub.publish(p_world);
+        }
+
+        if (publish_vicon) {
+            //ROS_INFO("vicon_payload_pos: %f %f %f",vicon_payload_pos(0),vicon_payload_pos(1),vicon_payload_pos(2));
+            //ROS_INFO("vicon_quad_pos: %f %f %f",vicon_quad_pos(0),vicon_quad_pos(1),vicon_quad_pos(2));
+            cv::Vec3f tempVec = ( R_WB.t() * (vicon_payload_pos - vicon_quad_pos) );
+            //ROS_INFO("Vec1: %f %f %f",tempVec(0),tempVec(1),tempVec(2));
+            tempVec = (cable_length + distance_tag_CoG) * tempVec / sqrt(tempVec(0)*tempVec(0) + tempVec(1)*tempVec(1) + tempVec(2)*tempVec(2));
+            //ROS_INFO("Vec2: %f %f %f",tempVec(0),tempVec(1),tempVec(2));
+            geometry_msgs::PoseStamped p_vicon;
+            p_vicon.pose.position.x = tempVec(0);
+            p_vicon.pose.position.y = tempVec(1);
+            p_vicon.pose.position.z = tempVec(2);
+            // p_vicon.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, p_vicon.rot(0), p_vicon.rot(1));
+            p_vicon.header = header;
+            p_vicon.header.frame_id = frame_id;
+            poses_vicon_pub.publish(p_vicon);
         }
 
         if (publish_tf) {
@@ -228,17 +256,17 @@ void whycon::WhyConROS::publish_results(const std_msgs::Header& header, const cv
         image_pub.publish(output_image_bridge);
     }
 
-//    if (publish_poses) {
-//        pose_array.header = header;
-//        pose_array.header.frame_id = frame_id;
-//        poses_pub.publish(pose_array);
-//    }
+   // if (publish_poses) {
+   //     pose_array.header = header;
+   //     pose_array.header.frame_id = frame_id;
+   //     poses_pub.publish(pose_array);
+   // }
 
-//    if (publish_poses_world) {
-//        pose_world_array.header = header;
-//        pose_world_array.header.frame_id = frame_id;
-//        poses_world_pub.publish(pose_world_array);
-//    }
+   // if (publish_poses_world) {
+   //     pose_world_array.header = header;
+   //     pose_world_array.header.frame_id = frame_id;
+   //     poses_world_pub.publish(pose_world_array);
+   // }
 
     if (transformation_loaded)
     {
@@ -287,23 +315,45 @@ void whycon::WhyConROS::load_transforms(void)
 
 void whycon::WhyConROS::vicon_quad_callback(const nav_msgs::Odometry& msg)
 {
-    // Eigen::Quaterniond orientationQ(msg.pose.pose.orientation.w,
-    //                                 msg.pose.pose.orientation.x,
-    //                                 msg.pose.pose.orientation.y,
-    //                                 msg.pose.pose.orientation.z);
-    // Eigen::Matrix3d orientationR = orientationQ.toRotationMatrix();
-    R_WB(0,0) = 1 - 2*msg.pose.pose.orientation.y*msg.pose.pose.orientation.y - 2*msg.pose.pose.orientation.z*msg.pose.pose.orientation.z;
-    R_WB(0,1) = 2*msg.pose.pose.orientation.x*msg.pose.pose.orientation.y - 2*msg.pose.pose.orientation.z*msg.pose.pose.orientation.w;
-    R_WB(0,2) = 2*msg.pose.pose.orientation.x*msg.pose.pose.orientation.z + 2*msg.pose.pose.orientation.y*msg.pose.pose.orientation.w;
-    R_WB(1,0) = 2*msg.pose.pose.orientation.x*msg.pose.pose.orientation.y + 2*msg.pose.pose.orientation.z*msg.pose.pose.orientation.w;
-    R_WB(1,1) = 1 - 2*msg.pose.pose.orientation.x*msg.pose.pose.orientation.x - 2*msg.pose.pose.orientation.z*msg.pose.pose.orientation.z;
-    R_WB(1,2) = 2*msg.pose.pose.orientation.y*msg.pose.pose.orientation.z - 2*msg.pose.pose.orientation.x*msg.pose.pose.orientation.w;
-    R_WB(2,0) = 2*msg.pose.pose.orientation.x*msg.pose.pose.orientation.z - 2*msg.pose.pose.orientation.y*msg.pose.pose.orientation.w;
-    R_WB(2,1) = 2*msg.pose.pose.orientation.y*msg.pose.pose.orientation.z + 2*msg.pose.pose.orientation.x*msg.pose.pose.orientation.w;
-    R_WB(2,2) = 1 - 2*msg.pose.pose.orientation.x*msg.pose.pose.orientation.x - 2*msg.pose.pose.orientation.y*msg.pose.pose.orientation.y;
+    if (transform_to_world_frame || publish_vicon) {
 
-    // ROS_INFO("R_WB1 = \n%f %f %f\n%f %f %f\n%f %f %f",
-    //                    orientationR(0,0),orientationR(0,1),orientationR(0,2),
-    //                    orientationR(1,0),orientationR(1,1),orientationR(1,2),
-    //                    orientationR(2,0),orientationR(2,1),orientationR(2,2));
+        Eigen::Quaterniond orientationQ(msg.pose.pose.orientation.w,
+                                        msg.pose.pose.orientation.x,
+                                        msg.pose.pose.orientation.y,
+                                        msg.pose.pose.orientation.z);
+        Eigen::Matrix3d orientationR = orientationQ.toRotationMatrix();
+
+        R_WB = {orientationR(0,0),orientationR(0,1),orientationR(0,2),
+                orientationR(1,0),orientationR(1,1),orientationR(1,2),
+                orientationR(2,0),orientationR(2,1),orientationR(2,2)};
+
+        // R_WB(0,0) = 1 - 2*msg.pose.pose.orientation.y*msg.pose.pose.orientation.y - 2*msg.pose.pose.orientation.z*msg.pose.pose.orientation.z;
+        // R_WB(0,1) = 2*msg.pose.pose.orientation.x*msg.pose.pose.orientation.y - 2*msg.pose.pose.orientation.z*msg.pose.pose.orientation.w;
+        // R_WB(0,2) = 2*msg.pose.pose.orientation.x*msg.pose.pose.orientation.z + 2*msg.pose.pose.orientation.y*msg.pose.pose.orientation.w;
+        // R_WB(1,0) = 2*msg.pose.pose.orientation.x*msg.pose.pose.orientation.y + 2*msg.pose.pose.orientation.z*msg.pose.pose.orientation.w;
+        // R_WB(1,1) = 1 - 2*msg.pose.pose.orientation.x*msg.pose.pose.orientation.x - 2*msg.pose.pose.orientation.z*msg.pose.pose.orientation.z;
+        // R_WB(1,2) = 2*msg.pose.pose.orientation.y*msg.pose.pose.orientation.z - 2*msg.pose.pose.orientation.x*msg.pose.pose.orientation.w;
+        // R_WB(2,0) = 2*msg.pose.pose.orientation.x*msg.pose.pose.orientation.z - 2*msg.pose.pose.orientation.y*msg.pose.pose.orientation.w;
+        // R_WB(2,1) = 2*msg.pose.pose.orientation.y*msg.pose.pose.orientation.z + 2*msg.pose.pose.orientation.x*msg.pose.pose.orientation.w;
+        // R_WB(2,2) = 1 - 2*msg.pose.pose.orientation.x*msg.pose.pose.orientation.x - 2*msg.pose.pose.orientation.y*msg.pose.pose.orientation.y;
+
+        // ROS_INFO("R_WB1 = \n%f %f %f\n%f %f %f\n%f %f %f",
+        //                    orientationR(0,0),orientationR(0,1),orientationR(0,2),
+        //                    orientationR(1,0),orientationR(1,1),orientationR(1,2),
+        //                    orientationR(2,0),orientationR(2,1),orientationR(2,2));
+    }
+
+    if (publish_vicon) {
+        vicon_quad_pos = {msg.pose.pose.position.x, msg.pose.pose.position.y, msg.pose.pose.position.z};
+        vicon_quad_vel = {msg.twist.twist.linear.x, msg.twist.twist.linear.y, msg.twist.twist.linear.z};
+        vicon_quad_angVel= {msg.twist.twist.angular.x, msg.twist.twist.angular.y, msg.twist.twist.angular.z};
+    }
+}
+
+void whycon::WhyConROS::vicon_payload_callback(const nav_msgs::Odometry& msg)
+{
+    if (publish_vicon) {
+        vicon_payload_pos = {msg.pose.pose.position.x, msg.pose.pose.position.y, msg.pose.pose.position.z};
+        vicon_payload_vel = {msg.twist.twist.linear.x, msg.twist.twist.linear.y, msg.twist.twist.linear.z};
+    }
 }

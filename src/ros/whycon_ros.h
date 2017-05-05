@@ -27,6 +27,7 @@ private:
     void publish_results(const std_msgs::Header& header, const cv_bridge::CvImageConstPtr& cv_ptr);
 
     void vicon_quad_callback(const nav_msgs::Odometry& msg);
+    void vicon_payload_callback(const nav_msgs::Odometry& msg);
 
     whycon::DetectorParameters parameters;
     boost::shared_ptr<whycon::LocalizationSystem> system;
@@ -37,6 +38,7 @@ private:
     double xscale, yscale, cable_length, distance_tag_CoG;
     bool use_omni_model;
     bool publish_tf;
+    bool publish_vicon;
     bool transform_to_world_frame;
     std::vector<double> R_BC_yaml;
     std::vector<double> B_T_BC_yaml;
@@ -44,6 +46,12 @@ private:
     cv::Matx33d R_BC;
     cv::Vec3d B_T_BC;
     cv::Matx33d R_WB;
+
+    cv::Vec3d vicon_quad_pos;
+    cv::Vec3d vicon_quad_vel;
+    cv::Vec3d vicon_quad_angVel;
+    cv::Vec3d vicon_payload_pos;
+    cv::Vec3d vicon_payload_vel;
 
     ocam_model model;
 
@@ -54,10 +62,10 @@ private:
     image_transport::CameraSubscriber cam_sub;
     ros::ServiceServer reset_service;
 
-    ros::Publisher image_pub, poses_pub, poses_world_pub, context_pub, projection_pub, pixel_pub;
+    ros::Publisher image_pub, poses_pub, poses_world_pub, poses_vicon_pub, context_pub, projection_pub, pixel_pub;
     boost::shared_ptr<tf::TransformBroadcaster>	transform_broadcaster;
     tf::TransformBroadcaster tf_broadcaster;
-    ros::Subscriber vicon_quad_sub;
+    ros::Subscriber vicon_quad_sub, vicon_payload_sub;
 
     image_geometry::PinholeCameraModel camera_model;
 
