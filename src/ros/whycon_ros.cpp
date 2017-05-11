@@ -135,18 +135,21 @@ void whycon::WhyConROS::publish_results(const std_msgs::Header &header, const cv
     time_R_WB_queue_.pop();
     //ROS_INFO("sizes0: R_WB %f, time %f",R_WB_queue_.front()(0,0),time_R_WB_queue_.front());
     while ( std::abs(time_R_WB_queue_.front() - time_new_) <  std::abs(time_older - time_new_)) {
+            //ROS_INFO("t_option %f",std::abs(time_older - time_new_));
             time_older = time_R_WB_queue_.front();
             time_R_WB_queue_.pop();
             R_WB_queue_.pop();
             //ROS_INFO("sizes1: R_WB %f, time %f", R_WB_queue_.front()(0,0), time_R_WB_queue_.front());
     }
+    //ROS_INFO("chosen: %f",std::abs(time_older - time_new_));
     R_WB_ = R_WB_queue_.front();
-    R_WB_queue_.pop();
+    //R_WB_queue_.pop();
+    time_R_WB_queue_.push(time_older);
     //ROS_INFO("next in line: R_WB %f, time %f",R_WB_queue_.front()(0,0),time_R_WB_queue_.front());
-    ROS_INFO("sizes: R_WB %d, time %d",R_WB_queue_.size(),time_R_WB_queue_.size());
+    //ROS_INFO("sizes: R_WB %d, time %d",R_WB_queue_.size(),time_R_WB_queue_.size());
     //ROS_INFO("values: R_WB %f, time %f",R_WB_(0,0),time_older);
 
-    if( std::abs(time_new_ - time_older) > 0.005 ) {
+    if( std::abs(time_new_ - time_older) > 0.015 ) {
         ROS_INFO("transform too old: %f", time_new_ - time_older);
         return;
     }
