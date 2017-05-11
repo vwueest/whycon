@@ -1,0 +1,8 @@
+prefix=/home/vwueest/workspace/src/whycon/cmake-build-debug/devel
+
+Name: whycon
+Description: Description of whycon
+Version: 1.2.0
+Cflags: -I/home/vwueest/workspace/src/whycon/cmake-build-debug/devel/include -I/home/vwueest/workspace/src/whycon/include
+Libs: -L/home/vwueest/workspace/src/whycon/cmake-build-debug/devel/lib -lwhycon
+Requires: cv_bridge roscpp sensor_msgs std_msgs message_runtime geometry_msgs
