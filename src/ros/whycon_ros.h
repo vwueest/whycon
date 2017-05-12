@@ -24,6 +24,9 @@ public:
     bool reset(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
 
 private:
+    int num_meas = 0;
+    double avg = 0;
+
     void load_transforms(void);
     void publish_results(const std_msgs::Header& header, const cv_bridge::CvImageConstPtr& cv_ptr);
 
@@ -51,7 +54,8 @@ private:
     std::queue<cv::Matx33d> R_WB_queue_;
     std::queue<double> time_R_WB_queue_;
 
-    double time_old_, time_new_, time_new_vicon_payload_, time_old_vicon_quad_, time_new_vicon_quad_;
+    ros::Time time_old_whycon_, time_new_whycon_, time_new_vicon_payload_, time_old_vicon_quad_, time_new_vicon_quad_;
+    ros::Duration time_diff_whycon, time_diff_vicon;
     cv::Vec3d whycon_velocity = {0, 0, 0};
     cv::Vec3d whycon_angVelocity = {0, 0, 0};
     cv::Vec3d whycon_position_bodyFrame_;

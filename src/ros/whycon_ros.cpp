@@ -128,31 +128,60 @@ void whycon::WhyConROS::publish_results(const std_msgs::Header &header, const cv
     publish_pixels = (pixel_pub.getNumSubscribers() != 0);
     publish_vicon = (odom_vicon_pub.getNumSubscribers() != 0);
 
-    time_new_ = header.stamp.sec + header.stamp.nsec * 1e-9;
+    time_new_whycon_ = header.stamp;
+    ros::Duration t_diff_w_v(time_new_whycon_-time_new_vicon_quad_);
 
-    // find correct R_WB_ in R_WB_queue
-    time_older = time_R_WB_queue_.front();
-    time_R_WB_queue_.pop();
-    //ROS_INFO("sizes0: R_WB %f, time %f",R_WB_queue_.front()(0,0),time_R_WB_queue_.front());
-    while ( std::abs(time_R_WB_queue_.front() - time_new_) <  std::abs(time_older - time_new_)) {
-            //ROS_INFO("t_option %f",std::abs(time_older - time_new_));
-            time_older = time_R_WB_queue_.front();
-            time_R_WB_queue_.pop();
-            R_WB_queue_.pop();
-            //ROS_INFO("sizes1: R_WB %f, time %f", R_WB_queue_.front()(0,0), time_R_WB_queue_.front());
-    }
-    //ROS_INFO("chosen: %f",std::abs(time_older - time_new_));
-    R_WB_ = R_WB_queue_.front();
-    //R_WB_queue_.pop();
-    time_R_WB_queue_.push(time_older);
-    //ROS_INFO("next in line: R_WB %f, time %f",R_WB_queue_.front()(0,0),time_R_WB_queue_.front());
-    //ROS_INFO("sizes: R_WB %d, time %d",R_WB_queue_.size(),time_R_WB_queue_.size());
-    //ROS_INFO("values: R_WB %f, time %f",R_WB_(0,0),time_older);
+    ROS_INFO("w-v:     %f",t_diff_w_v.toSec());
 
-    if( std::abs(time_new_ - time_older) > 0.015 ) {
-        ROS_INFO("transform too old: %f", time_new_ - time_older);
-        return;
-    }
+    num_meas++;
+    avg = (avg * (num_meas - 1) + t_diff_w_v.toSec())/num_meas;
+    ROS_INFO("w-v: avg %f",avg);
+
+    //ros::Time now = ros::Time::now();
+    //ros::Duration diff(now - header.stamp);
+    //ROS_INFO("delay whycon: %d.%d",diff.sec,diff.nsec);
+
+//    ///////////////////////////////////
+//    time_R_WB_queue_.push(1.0);
+//    time_R_WB_queue_.push(2.0);
+//    time_R_WB_queue_.push(3.0);
+//    time_R_WB_queue_.push(4.0);
+//    time_R_WB_queue_.push(5.0);
+//    time_R_WB_queue_.push(6.0);
+//
+//    time_new_whycon_ = 3.0;
+//
+//    R_WB_queue_.push(cv::Matx33d(1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0));
+//    R_WB_queue_.push(cv::Matx33d(2.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0));
+//    R_WB_queue_.push(cv::Matx33d(3.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0));
+//    R_WB_queue_.push(cv::Matx33d(4.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0));
+//    R_WB_queue_.push(cv::Matx33d(5.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0));
+//    R_WB_queue_.push(cv::Matx33d(6.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0));
+//    ///////////////////////////////////
+
+//    // find correct R_WB_ in R_WB_queue
+//    time_older = time_R_WB_queue_.front();
+//    time_R_WB_queue_.pop();
+//    ROS_INFO("timediff 0: time %f",std::abs(time_older - time_new_whycon_));
+//    while ( std::abs(time_R_WB_queue_.front() - time_new_whycon_) <  std::abs(time_older - time_new_whycon_)) {
+//            ROS_INFO("timediff 1: time %f",std::abs(time_older - time_new_whycon_));
+//            ROS_INFO("timediff 2: time %f",std::abs(time_R_WB_queue_.front() - time_new_whycon_));
+//            time_older = time_R_WB_queue_.front();
+//            time_R_WB_queue_.pop();
+//            R_WB_queue_.pop();
+//    }
+//    ROS_INFO("chosen: %f",std::abs(time_older - time_new_whycon_));
+//    R_WB_ = R_WB_queue_.front();
+//    R_WB_queue_.pop();
+//    time_R_WB_queue_.push(time_older);
+//    ROS_INFO("next in line: R_WB %f, time %f",R_WB_queue_.front()(0,0),time_R_WB_queue_.front());
+//    ROS_INFO("sizes: R_WB %d, time %d",R_WB_queue_.size(),time_R_WB_queue_.size());
+//    ROS_INFO("values: R_WB %f, time %f",R_WB_(0,0),time_older);
+//
+//    if( std::abs(time_new_whycon_ - time_older) > 0.015 ) {
+//        ROS_INFO("transform too old: %f", time_new_whycon_ - time_older);
+//        return;
+//    }
 
     if (!publish_images && !publish_pixels && !publish_odom_whycon && !publish_vicon) return;
 
@@ -211,14 +240,16 @@ void whycon::WhyConROS::publish_results(const std_msgs::Header &header, const cv
                                          0};
 
             // calculate velocity for output
-            if (time_old_ != 0)
+            if (!time_old_whycon_.isZero()) {
+                time_diff_whycon = time_new_whycon_ - time_old_whycon_;
                 whycon_velocity_outputFrame = (whycon_position_outputFrame - whycon_position_outputFrame_old) /
-                                              (time_new_ - time_old_);
+                                              (time_diff_whycon.toSec());
+            }
 
             // calculate angular velocity for output
-            if (time_old_ != 0) {
+            if (!time_old_whycon_.isZero()) {
                 whycon_angVel_outputFrame = (whycon_angle_outputFrame - whycon_angle_outputFrame_old) /
-                                            (time_new_ - time_old_);
+                                            (time_diff_whycon.toSec());
 //                whycon_angVel_outputFrame = (whycon_angVel_outputFrame +
 //                                             whycon_angVel_outputFrame_old +
 //                                             whycon_angVel_outputFrame_old2) / 3;
@@ -265,7 +296,7 @@ void whycon::WhyConROS::publish_results(const std_msgs::Header &header, const cv
 
         whycon_position_outputFrame_old = whycon_position_outputFrame;
         whycon_angle_outputFrame_old = whycon_angle_outputFrame;
-        time_old_ = time_new_;
+        time_old_whycon_ = time_new_whycon_;
         //R_WB_old = R_WB_;
 
         // if (publish_vicon) {
@@ -333,6 +364,11 @@ void whycon::WhyConROS::publish_results(const std_msgs::Header &header, const cv
 //        for (size_t i = 0; i < projection.size(); i++) projection_msg.projection[i] = projection[i];
 //        projection_pub.publish(projection_msg);
 //    }
+
+    //ros::Duration diff2(now2 - header.stamp);
+    ros::Duration diff(ros::Time::now() - time_new_whycon_);
+    ROS_INFO("total delay after calc whycon: %d.%d",diff.sec,diff.nsec);
+    //ROS_INFO("calculation time whycon: %d.%d",diff3.sec,diff3.nsec);
 }
 
 void whycon::WhyConROS::load_transforms(void) {
@@ -369,8 +405,9 @@ void whycon::WhyConROS::load_transforms(void) {
 }
 
 void whycon::WhyConROS::vicon_quad_callback(const nav_msgs::Odometry &msg) {
-
-    time_new_vicon_quad_ = msg.header.stamp.sec + msg.header.stamp.nsec * 1e-9;
+    //ros::Time now = ros::Time::now();
+    //ros::Duration diff(now - msg.header.stamp);
+    //ROS_INFO("delay vicon:  %d.%d",diff.sec,diff.nsec);
 
     if (transform_to_world_frame || publish_vicon) {
 //        Eigen::Quaterniond orientationQ(msg.pose.pose.orientation.w,
@@ -400,8 +437,8 @@ void whycon::WhyConROS::vicon_quad_callback(const nav_msgs::Odometry &msg) {
                  2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.w,
                  1 - 2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.x -
                  2 * msg.pose.pose.orientation.y * msg.pose.pose.orientation.y};
-        R_WB_queue_.push(R_WB_);
-        time_R_WB_queue_.push(time_new_vicon_quad_);
+        //R_WB_queue_.push(R_WB_);
+        //time_R_WB_queue_.push(time_new_vicon_quad_);
 
 //        ROS_INFO("R_WB1 = \n%f %f %f\n%f %f %f\n%f %f %f",
 //                 orientationR(0,0),orientationR(0,1),orientationR(0,2),
@@ -410,8 +447,11 @@ void whycon::WhyConROS::vicon_quad_callback(const nav_msgs::Odometry &msg) {
 
     }
 
+    time_new_vicon_quad_ = msg.header.stamp;
+    time_diff_vicon = (time_new_vicon_quad_ - time_new_vicon_payload_);
+
     if (publish_vicon) {
-//        if (std::abs(time_new_vicon_quad_ - time_old_vicon_quad_) < 1.0 / 75.0)
+//        if (std::abs(time_diff_vicon.toSec()) < 1.0 / 75.0)
 //            ROS_INFO("R_WB %f", 1 / (time_new_vicon_quad_ - time_old_vicon_quad_));
 //        else
 //            ROS_INFO("R_WB -");
@@ -421,18 +461,24 @@ void whycon::WhyConROS::vicon_quad_callback(const nav_msgs::Odometry &msg) {
         vicon_quad_vel_ = {msg.twist.twist.linear.x, msg.twist.twist.linear.y, msg.twist.twist.linear.z};
         vicon_quad_angVel_ = {msg.twist.twist.angular.x, msg.twist.twist.angular.y, msg.twist.twist.angular.z};
 
-        if (std::abs(time_new_vicon_payload_ - time_new_vicon_quad_) < 1.5*0.01)
+        if (std::abs(time_diff_vicon.toSec()) < 1.5*0.01)
             vicon_publish_msg(msg.header);
     }
+
+
+    //ros::Duration diff2(now2 - msg.header.stamp);
+    //ros::Duration diff3(ros::Time::now() - now);
+    //ROS_INFO("delay after calc vicon:  %d.%d",diff2.sec,diff2.nsec);
+    //ROS_INFO("calculation time vicon:  %d.%d",diff3.sec,diff3.nsec);
 }
 
 void whycon::WhyConROS::vicon_payload_callback(const nav_msgs::Odometry &msg) {
     if (publish_vicon) {
-        time_new_vicon_payload_ = msg.header.stamp.sec + msg.header.stamp.nsec * 1e-9;
+        time_new_vicon_payload_ = msg.header.stamp;
         vicon_payload_pos_ = {msg.pose.pose.position.x, msg.pose.pose.position.y, msg.pose.pose.position.z};
         vicon_payload_vel_ = {msg.twist.twist.linear.x, msg.twist.twist.linear.y, msg.twist.twist.linear.z};
 
-        if (std::abs(time_new_vicon_payload_ - time_new_vicon_quad_) < 1.5*0.01)
+        if (std::abs(time_diff_vicon.toSec()) < 1.5*0.01)
             vicon_publish_msg(msg.header);
     }
 }
