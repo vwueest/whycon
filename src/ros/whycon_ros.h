@@ -30,8 +30,9 @@ private:
     void load_transforms(void);
     void publish_results(const std_msgs::Header& header, const cv_bridge::CvImageConstPtr& cv_ptr);
 
-    void vicon_quad_callback(const geometry_msgs::PoseStamped& msg);
-    void vicon_payload_callback(const nav_msgs::Odometry& msg);
+    void vicon_quad_callback(const geometry_msgs::PoseStamped &msg);
+    void vicon_quad_callback_old(const nav_msgs::Odometry &msg);
+    void vicon_payload_callback(const nav_msgs::Odometry &msg);
     void vicon_publish_msg(const std_msgs::Header_<std::allocator<void>>& header); //vicon_publish_msg(msg.header)
 
     whycon::DetectorParameters parameters;
@@ -40,7 +41,7 @@ private:
     int max_attempts, max_refine;
     std::string world_frame_id, frame_id;
     int targets;
-    double xscale, yscale, cable_length, distance_tag_CoG, time_older;
+    double xscale, yscale, cable_length, distance_tag_CoG;
     bool use_omni_model;
     bool publish_tf;
     bool publish_vicon;
@@ -51,10 +52,10 @@ private:
     cv::Matx33d R_BC;
     cv::Vec3d B_T_BC;
     cv::Matx33d R_WB_;
-    std::queue<cv::Matx33d> R_WB_queue_;
-    std::queue<double> time_R_WB_queue_;
+    std::vector<cv::Matx33d> R_WB_queue_;
+    std::vector<ros::Time> time_R_WB_queue_;
 
-    ros::Time time_old_whycon_, time_new_whycon_, time_new_vicon_payload_, time_old_vicon_quad_, time_new_vicon_quad_;
+    ros::Time time_old_whycon_, time_new_whycon_, time_new_vicon_payload_, time_old_vicon_quad_, time_new_vicon_quad_, time_older;
     ros::Duration time_diff_whycon, time_diff_vicon;
     cv::Vec3d whycon_velocity = {0, 0, 0};
     cv::Vec3d whycon_angVelocity = {0, 0, 0};
