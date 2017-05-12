@@ -404,7 +404,7 @@ void whycon::WhyConROS::load_transforms(void) {
     ROS_INFO_STREAM("Loaded transformation from \"" << filename << "\"");
 }
 
-void whycon::WhyConROS::vicon_quad_callback(const nav_msgs::Odometry &msg) {
+void whycon::WhyConROS::vicon_quad_callback(const geometry_msgs::PoseStamped &msg) {
     //ros::Time now = ros::Time::now();
     //ros::Duration diff(now - msg.header.stamp);
     //ROS_INFO("delay vicon:  %d.%d",diff.sec,diff.nsec);
@@ -419,24 +419,44 @@ void whycon::WhyConROS::vicon_quad_callback(const nav_msgs::Odometry &msg) {
 //                orientationR(1,0),orientationR(1,1),orientationR(1,2),
 //                orientationR(2,0),orientationR(2,1),orientationR(2,2)};
 
-        R_WB_ = {1 - 2 * msg.pose.pose.orientation.y * msg.pose.pose.orientation.y -
-                 2 * msg.pose.pose.orientation.z * msg.pose.pose.orientation.z,
-                 2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.y -
-                 2 * msg.pose.pose.orientation.z * msg.pose.pose.orientation.w,
-                 2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.z +
-                 2 * msg.pose.pose.orientation.y * msg.pose.pose.orientation.w,
-                 2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.y +
-                 2 * msg.pose.pose.orientation.z * msg.pose.pose.orientation.w,
-                 1 - 2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.x -
-                 2 * msg.pose.pose.orientation.z * msg.pose.pose.orientation.z,
-                 2 * msg.pose.pose.orientation.y * msg.pose.pose.orientation.z -
-                 2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.w,
-                 2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.z -
-                 2 * msg.pose.pose.orientation.y * msg.pose.pose.orientation.w,
-                 2 * msg.pose.pose.orientation.y * msg.pose.pose.orientation.z +
-                 2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.w,
-                 1 - 2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.x -
-                 2 * msg.pose.pose.orientation.y * msg.pose.pose.orientation.y};
+//        R_WB_ = {1 - 2 * msg.pose.pose.orientation.y * msg.pose.pose.orientation.y -
+//                 2 * msg.pose.pose.orientation.z * msg.pose.pose.orientation.z,
+//                 2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.y -
+//                 2 * msg.pose.pose.orientation.z * msg.pose.pose.orientation.w,
+//                 2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.z +
+//                 2 * msg.pose.pose.orientation.y * msg.pose.pose.orientation.w,
+//                 2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.y +
+//                 2 * msg.pose.pose.orientation.z * msg.pose.pose.orientation.w,
+//                 1 - 2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.x -
+//                 2 * msg.pose.pose.orientation.z * msg.pose.pose.orientation.z,
+//                 2 * msg.pose.pose.orientation.y * msg.pose.pose.orientation.z -
+//                 2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.w,
+//                 2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.z -
+//                 2 * msg.pose.pose.orientation.y * msg.pose.pose.orientation.w,
+//                 2 * msg.pose.pose.orientation.y * msg.pose.pose.orientation.z +
+//                 2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.w,
+//                 1 - 2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.x -
+//                 2 * msg.pose.pose.orientation.y * msg.pose.pose.orientation.y};
+
+        R_WB_ = {1 - 2 * msg.pose.orientation.y * msg.pose.orientation.y -
+                 2 * msg.pose.orientation.z * msg.pose.orientation.z,
+                 2 * msg.pose.orientation.x * msg.pose.orientation.y -
+                 2 * msg.pose.orientation.z * msg.pose.orientation.w,
+                 2 * msg.pose.orientation.x * msg.pose.orientation.z +
+                 2 * msg.pose.orientation.y * msg.pose.orientation.w,
+                 2 * msg.pose.orientation.x * msg.pose.orientation.y +
+                 2 * msg.pose.orientation.z * msg.pose.orientation.w,
+                 1 - 2 * msg.pose.orientation.x * msg.pose.orientation.x -
+                 2 * msg.pose.orientation.z * msg.pose.orientation.z,
+                 2 * msg.pose.orientation.y * msg.pose.orientation.z -
+                 2 * msg.pose.orientation.x * msg.pose.orientation.w,
+                 2 * msg.pose.orientation.x * msg.pose.orientation.z -
+                 2 * msg.pose.orientation.y * msg.pose.orientation.w,
+                 2 * msg.pose.orientation.y * msg.pose.orientation.z +
+                 2 * msg.pose.orientation.x * msg.pose.orientation.w,
+                 1 - 2 * msg.pose.orientation.x * msg.pose.orientation.x -
+                 2 * msg.pose.orientation.y * msg.pose.orientation.y};
+
         //R_WB_queue_.push(R_WB_);
         //time_R_WB_queue_.push(time_new_vicon_quad_);
 
@@ -457,9 +477,9 @@ void whycon::WhyConROS::vicon_quad_callback(const nav_msgs::Odometry &msg) {
 //            ROS_INFO("R_WB -");
 //        time_old_vicon_quad_ = time_new_vicon_quad_;
 
-        vicon_quad_pos_ = {msg.pose.pose.position.x, msg.pose.pose.position.y, msg.pose.pose.position.z};
-        vicon_quad_vel_ = {msg.twist.twist.linear.x, msg.twist.twist.linear.y, msg.twist.twist.linear.z};
-        vicon_quad_angVel_ = {msg.twist.twist.angular.x, msg.twist.twist.angular.y, msg.twist.twist.angular.z};
+    //    vicon_quad_pos_ = {msg.pose.pose.position.x, msg.pose.pose.position.y, msg.pose.pose.position.z};
+    //    vicon_quad_vel_ = {msg.twist.twist.linear.x, msg.twist.twist.linear.y, msg.twist.twist.linear.z};
+    //    vicon_quad_angVel_ = {msg.twist.twist.angular.x, msg.twist.twist.angular.y, msg.twist.twist.angular.z};
 
         if (std::abs(time_diff_vicon.toSec()) < 1.5*0.01)
             vicon_publish_msg(msg.header);
