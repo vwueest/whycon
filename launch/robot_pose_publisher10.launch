@@ -10,8 +10,9 @@
   <arg name="publish_vicon" default="false"/>
   <arg name="transform_to_world_frame" default="true"/>  
   <arg name="use_omni_model" default="true"/>
-  <arg name="vicon_quad_topic" default="/vicon/QuadrotorBashful/odom"/>
-  <arg name="vicon_payload_topic" default="/vicon/PayloadBashful/odom"/>
+  <arg name="vicon_quad_topic"      default="/vicon/QuadrotorBashful/pose"/>
+  <arg name="vicon_quad_topic_odom" default="/vicon/QuadrotorBashful/odom"/>
+  <arg name="vicon_payload_topic"   default="/vicon/PayloadBashful/odom"/>
 
   <!--group ns="camera">
     <node pkg="image_proc" type="image_proc" name="image_proc"/>
@@ -39,7 +40,7 @@
     <param name="publish_tf" type="bool" value="$(arg publish_tf)"/>
     <param name="publish_vicon" type="bool" value="$(arg publish_vicon)"/>
     <param name="transform_to_world_frame" type="bool" value="$(arg transform_to_world_frame)"/>
-    <param name="vicon_quad_topic" value="$(arg vicon_quad_topic)"/>
+    <param name="vicon_quad_topic" value="$(arg vicon_quad_topic_odom)"/>
     <param name="vicon_payload_topic" value="$(arg vicon_payload_topic)"/>
 
     <param name="calib_file" value="$(find whycon)/config/calib_results_$(arg camera_name).txt"/>
@@ -47,7 +48,7 @@
   </node>
 
   <node name="vicon_publisher" type="vicon_publisher" pkg="whycon" output="screen">
-    <param name="vicon_quad_topic" value="$(arg vicon_quad_topic)"/>
+    <param name="vicon_quad_topic" value="$(arg vicon_quad_topic_odom)"/>
     <param name="vicon_payload_topic" value="$(arg vicon_payload_topic)"/>
     <param name="transform_to_world_frame" type="bool" value="$(arg transform_to_world_frame)"/>
     <rosparam file="$(find whycon)/config/setup_$(arg camera_name).yaml"/>
