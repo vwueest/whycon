@@ -7,52 +7,23 @@ whycon::ViconPublisher::ViconPublisher(ros::NodeHandle &n) {
     n.param("distance_tag_CoG", distance_tag_CoG, 0.0);
     n.param("transform_to_world_frame", transform_to_world_frame, false);
 
+    std::string vicon_quad_topic, vicon_payload_topic;
+    n.param("vicon_quad_topic", vicon_quad_topic, std::string(""));
+    n.param("vicon_payload_topic", vicon_payload_topic, std::string(""));
+
     // n.param("axis_length_tolerance", axis_length_tolerance, 0.05);
     // n.param("world_frame", world_frame, std::string("world"));
     // n.param("target_frame", target_frame, std::string("target"));
 
     // broadcaster = boost::make_shared<tf::TransformBroadcaster>();
-    //vicon_quad_sub.subscribe(n, vicon_payload_topic.c_str(), 4);
-//    message_filters::Subscriber<nav_msgs::Odometry> vicon_quad_sub(n, vicon_quad_topic.c_str(), 2);
-//    vicon_quad_sub = n.subscribe(vicon_quad_topic, 1, &whycon::ViconPublisher::vicon_quad_callback, this);
-//    ROS_INFO("vicon subscribed to odometry msg quadrotor: %s", vicon_quad_topic.c_str());
-//    message_filters::Subscriber<nav_msgs::Odometry> vicon_payload_sub(n, vicon_payload_topic.c_str(), 2);
-//    //vicon_payload_sub.subscribe(n, vicon_payload_topic.c_str(), 4);
-//    ROS_INFO("vicon subscribed to odometry msg payload: %s", vicon_payload_topic.c_str());
+    // vicon_quad_sub.subscribe(n, vicon_payload_topic.c_str(), 4);
 
-//    typedef sync_policies::ApproximateTime<nav_msgs::Odometry, nav_msgs::Odometry> ViconSyncPolicy;
-//    message_filters::Synchronizer<ViconSyncPolicy> ViconSynchronizer(ViconSyncPolicy(2), vicon_quad_sub, vicon_payload_sub);
-//    ViconSynchronizer.registerCallback(boost::bind(&ViconPublisher::vicon_callback, this, _1, _2));
-
-//    //message_filters::Subscriber<nav_msgs::Odometry> vicon_quad_sub(n, vicon_quad_topic.c_str(), 1);
-//    vicon_quad_sub.subscribe(n, "/vicon/QuadrotorBashful/odom", 1);
-//    ROS_INFO("vicon subscribed to odometry msg quadrotor: %s", vicon_quad_topic.c_str());
-//    //message_filters::Subscriber<nav_msgs::Odometry> vicon_payload_sub(n, vicon_payload_topic.c_str(), 1);
-//    vicon_payload_sub.subscribe(n, "/vicon/Bashful/odom", 1);
-//    ROS_INFO("vicon subscribed to odometry msg payload: %s", vicon_payload_topic.c_str());
-//
-//    vicon_quad_sub2 = n.subscribe("/vicon/QuadrotorBashful/odom", 1, &whycon::ViconPublisher::vicon_quad_callback, this);
-//    ROS_INFO("vicon subscribed to odometry msg quadrotor: %s", vicon_quad_topic.c_str());
-//    vicon_payload_sub2 = n.subscribe("/vicon/Bashful/odom", 1, &whycon::ViconPublisher::vicon_payload_callback, this);
-//    ROS_INFO("vicon subscribed to odometry msg payload: %s", vicon_payload_topic.c_str());
-//
-//    typedef sync_policies::ApproximateTime<nav_msgs::Odometry,nav_msgs::Odometry> ViconSyncPolicy;
-//    Synchronizer<ViconSyncPolicy> ViconSynchronizer(ViconSyncPolicy(2), vicon_quad_sub, vicon_payload_sub);
-//    ViconSynchronizer.registerCallback(boost::bind(&whycon::ViconPublisher::vicon_callback, this, _1, _2));
-
-//    vicon_quad_sub.subscribe(n, "/vicon/QuadrotorBashful/odom", 1);
-//    vicon_payload_sub.subscribe(n, "/vicon/PayloadBashful/odom", 1);
+//    vicon_quad_sub.subscribe(n, vicon_quad_topic, 2);
+//    vicon_payload_sub.subscribe(n, vicon_payload_topic, 2);
 //
 //    typedef sync_policies::ApproximateTime<nav_msgs::Odometry, nav_msgs::Odometry> MySyncPolicy;
-//    // ApproximateTime takes a queue size as its constructor argument, hence MySyncPolicy(10)
 //    Synchronizer<MySyncPolicy> sync(MySyncPolicy(10), vicon_quad_sub, vicon_payload_sub);
-//    sync.registerCallback(boost::bind(callback, _1, _2));
-
-//    message_filters::Subscriber<Image> image1_sub(nh, "image1", 1);
-//    message_filters::Subscriber<Image> image2_sub(nh, "image2", 1);
-//    typedef sync_policies::ApproximateTime<Image, Image> MySyncPolicy;
-//    Synchronizer<MySyncPolicy> sync(MySyncPolicy(1), image1_sub, image2_sub);
-//    sync.registerCallback(boost::bind(&callback, _1, _2));
+//    sync.registerCallback(boost::bind(&whycon::ViconPublisher::vicon_callback, this, _1, _2));
 
     odom_vicon_pub = n.advertise<nav_msgs::Odometry>("odom_vicon", 1);
 }
