@@ -16,10 +16,10 @@ whycon::ViconPublisher::ViconPublisher(ros::NodeHandle &n) {
 
     // broadcaster = boost::make_shared<tf::TransformBroadcaster>();
     vicon_quad_sub = n.subscribe(vicon_quad_topic, 1, &whycon::ViconPublisher::vicon_quad_callback, this);
-    ROS_INFO("subscribed to odometry msg quadrotor: %s", vicon_quad_topic.c_str());
+    ROS_INFO("vicon subscribed to odometry msg quadrotor: %s", vicon_quad_topic.c_str());
     vicon_payload_sub = n.subscribe(vicon_payload_topic.c_str(), 1, &whycon::ViconPublisher::vicon_payload_callback,
                                     this);
-    ROS_INFO("subscribed to odometry msg payload: %s", vicon_payload_topic.c_str());
+    ROS_INFO("vicon subscribed to odometry msg payload: %s", vicon_payload_topic.c_str());
 
     odom_vicon_pub = n.advertise<nav_msgs::Odometry>("odom_vicon", 1);
 }
@@ -32,8 +32,9 @@ void whycon::ViconPublisher::vicon_payload_callback(const nav_msgs::Odometry &ms
     vicon_payload_pos_ = {msg.pose.pose.position.x, msg.pose.pose.position.y, msg.pose.pose.position.z};
     vicon_payload_vel_ = {msg.twist.twist.linear.x, msg.twist.twist.linear.y, msg.twist.twist.linear.z};
 
-    if (std::abs(time_new_vicon_payload_ - time_new_vicon_quad_) < 0.005)
+    if (std::abs(time_new_vicon_payload_ - time_new_vicon_quad_) < (1.0/150.0)/2.0) {
         vicon_publish_msg(msg.header);
+    }
 }
 
 void whycon::ViconPublisher::vicon_quad_callback(const nav_msgs::Odometry &msg) {
@@ -64,8 +65,9 @@ void whycon::ViconPublisher::vicon_quad_callback(const nav_msgs::Odometry &msg) 
     vicon_quad_vel_ = {msg.twist.twist.linear.x, msg.twist.twist.linear.y, msg.twist.twist.linear.z};
     vicon_quad_angVel_ = {msg.twist.twist.angular.x, msg.twist.twist.angular.y, msg.twist.twist.angular.z};
 
-    if (std::abs(time_new_vicon_payload_ - time_new_vicon_quad_) < 1.5*1.0/100.0)
+    if (std::abs(time_new_vicon_payload_ - time_new_vicon_quad_) < (1.0/150.0)/2.0) {
         vicon_publish_msg(msg.header);
+    }
 }
 
 void whycon::ViconPublisher::vicon_publish_msg(const std_msgs::Header_<std::allocator<void>> &header) {
@@ -101,9 +103,9 @@ void whycon::ViconPublisher::vicon_publish_msg(const std_msgs::Header_<std::allo
 
     // calculate relative angular velocity
     relative_ang_vel = (vicon_payload_pos_ - vicon_quad_pos_).cross(vicon_payload_vel_ - vicon_quad_vel_) /
-                       (vicon_payload_pos_ - vicon_quad_pos_).dot(vicon_payload_pos_ - vicon_quad_pos_);
+                       (vicon_payload_pos_ - vicon_quad_pos_).dot(  vicon_payload_pos_ - vicon_quad_pos_);
     if (!transform_to_world_frame)
-        relative_ang_vel = R_WB_ * (relative_ang_vel + vicon_quad_angVel_);
+        relative_ang_vel = R_WB_.t() * (relative_ang_vel - vicon_quad_angVel_);
 
     payload_vicon.twist.twist.angular.x = relative_ang_vel(0);
     payload_vicon.twist.twist.angular.y = relative_ang_vel(1);

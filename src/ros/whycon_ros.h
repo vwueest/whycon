@@ -27,6 +27,8 @@ private:
     int num_meas = 0;
     double avg = 0;
 
+    double filter_a;
+
     void load_transforms(void);
     void publish_results(const std_msgs::Header& header, const cv_bridge::CvImageConstPtr& cv_ptr);
 
@@ -51,9 +53,10 @@ private:
     std::string calib_file;
     cv::Matx33d R_BC;
     cv::Vec3d B_T_BC;
-    cv::Matx33d R_WB_;
+    cv::Matx33d R_WB_, R_WB_old;
     std::vector<cv::Matx33d> R_WB_queue_;
     std::vector<ros::Time> time_R_WB_queue_;
+    std::vector<cv::Vec3d> vicon_quad_angVel_queue_;
 
     ros::Time time_old_whycon_, time_new_whycon_, time_new_vicon_payload_, time_old_vicon_quad_, time_new_vicon_quad_, time_older;
     ros::Duration time_diff_whycon, time_diff_vicon;
@@ -61,6 +64,7 @@ private:
     cv::Vec3d whycon_angVelocity = {0, 0, 0};
     cv::Vec3d whycon_position_bodyFrame_;
     cv::Vec3d whycon_position_outputFrame_old;
+    cv::Vec3d whycon_position_bodyFrame_old;
     cv::Vec3d whycon_position_old;
     cv::Vec3d whycon_angle;
     cv::Vec3d whycon_angle_outputFrame_old;
@@ -70,6 +74,7 @@ private:
     cv::Vec3d vicon_quad_angVel_;
     cv::Vec3d vicon_payload_pos_;
     cv::Vec3d vicon_payload_vel_;
+    cv::Vec3d vicon_relative_ang_vel;
 
     // speed up variables
     bool publish_images, publish_odom_whycon, publish_pixels;
@@ -77,7 +82,7 @@ private:
     cv::Mat output_image;
     cv::Vec3d direction,
               whycon_position_outputFrame, whycon_velocity_outputFrame,
-              whycon_angle_outputFrame, whycon_angVel_outputFrame, whycon_angVel_outputFrame_old, whycon_angVel_outputFrame_old2;
+              whycon_angle_outputFrame, whycon_angVel_outputFrame, whycon_angVel_outputFrame_old, whycon_angVel_outputFrame_old2, whycon_angVel_outputFrame_old3;
     cv::Vec3f coord;
     nav_msgs::Odometry odom_whycon;
 
