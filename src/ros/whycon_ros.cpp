@@ -176,13 +176,13 @@ void whycon::WhyConROS::publish_results(const std_msgs::Header &header, const cv
                 if (next_diff < this_diff)
                     this_diff = next_diff;
                 else {
-                    ROS_INFO("closest time-diff found: %f", (time_new_whycon_ - time_R_WB_queue_[i]).toSec());
+                    //ROS_INFO("closest time-diff found: %f", (time_new_whycon_ - time_R_WB_queue_[i]).toSec());
                     break;
                 }
             }
 
             if (this_diff > 1) { //0.5 / 150.0) {
-                ROS_INFO("too old measurement");
+                //ROS_INFO("too old measurement");
                 return;
             }
 
@@ -195,9 +195,9 @@ void whycon::WhyConROS::publish_results(const std_msgs::Header &header, const cv
 
         num_meas++;
         avg = (avg * (num_meas - 1) + this_diff)/num_meas;
-        ROS_INFO("w-v: avg %f",avg);
+        //ROS_INFO("w-v: avg %f",avg);
 
-        ROS_INFO("length of vectors:       %d", time_R_WB_queue_.size());
+        //ROS_INFO("length of vectors:       %d", time_R_WB_queue_.size());
         //ROS_INFO("closest value found:     %f",R_WB_(0,0));
         //ROS_INFO("first remaining element: %f",R_WB_queue_[0](0,0));
         //ROS_INFO("size of remaining vec:   %d",time_R_WB_queue_.size());
@@ -443,7 +443,7 @@ void whycon::WhyConROS::publish_results(const std_msgs::Header &header, const cv
 
     //ros::Duration diff2(now2 - header.stamp);
     ros::Duration diff(ros::Time::now() - time_new_whycon_);
-    ROS_INFO("total delay after calc whycon: %d.%d",diff.sec,diff.nsec);
+    //ROS_INFO("total delay after calc whycon: %d.%d",diff.sec,diff.nsec);
     //ROS_INFO("calculation time whycon: %d.%d",diff3.sec,diff3.nsec);
 }
 

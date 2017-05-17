@@ -5,8 +5,16 @@
 #include <geometry_msgs/PoseArray.h>
 #include <nav_msgs/Odometry.h>
 #include <opencv2/imgproc/imgproc.hpp>
+#include <message_filters/subscriber.h>
+#include <message_filters/synchronizer.h>
+//#include <message_filters/time_synchronizer.h>
+#include <message_filters/sync_policies/approximate_time.h>
+#include <boost/bind.hpp>
+#include <boost/thread.hpp>
 //#include <tf/tf.h>
 //#include <tf/transform_broadcaster.h>
+
+using namespace message_filters;
 
 namespace whycon {
     class ViconPublisher {
@@ -19,14 +27,24 @@ namespace whycon {
         cv::Vec3d relative_pos_outputFrame, relative_vel_outputFrame, relative_ang_vel;
         nav_msgs::Odometry payload_vicon;
 
-        void vicon_quad_callback(const nav_msgs::Odometry &msg);
-        void vicon_payload_callback(const nav_msgs::Odometry &msg);
+//        void vicon_quad_callback(const nav_msgs::Odometry &msg);
+//        void vicon_payload_callback(const nav_msgs::Odometry &msg);
         void vicon_publish_msg(const std_msgs::Header_<std::allocator<void>>& header); //vicon_publish_msg(msg.header);
+        //void vicon_callback(const nav_msgs::OdometryConstPtr& msg_quad, const nav_msgs::OdometryConstPtr& msg_payload);
+        void vicon_quad_callback(const nav_msgs::OdometryConstPtr& msg);
+        void vicon_payload_callback(const nav_msgs::OdometryConstPtr& msg);
 
     public:
         ViconPublisher(ros::NodeHandle &n);
 
-        ros::Subscriber vicon_quad_sub, vicon_payload_sub;
+        // void callback(const nav_msgs::OdometryConstPtr& msg_quad, const nav_msgs::OdometryConstPtr& msg_payload);
+        void vicon_callback(const nav_msgs::OdometryConstPtr& msg_quad, const nav_msgs::OdometryConstPtr& msg_payload);
+        // message_filters::Subscriber<nav_msgs::Odometry> vicon_quad_sub, vicon_payload_sub;
+
+        //message_filters::Subscriber<nav_msgs::Odometry> vicon_quad_sub, vicon_payload_sub;
+        //ros::Subscriber vicon_quad_sub2, vicon_payload_sub2;
+        //message_filters::Subscriber<nav_msgs::Odometry> vicon_quad_sub, vicon_payload_sub;
+
         ros::Publisher odom_vicon_pub;
     };
 }

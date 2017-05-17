@@ -3,9 +3,6 @@
 #include <angles/angles.h>
 
 whycon::ViconPublisher::ViconPublisher(ros::NodeHandle &n) {
-    std::string vicon_quad_topic, vicon_payload_topic;
-    n.param("vicon_quad_topic", vicon_quad_topic, std::string(""));
-    n.param("vicon_payload_topic", vicon_payload_topic, std::string(""));
     n.param("cable_length", cable_length, 1.0);
     n.param("distance_tag_CoG", distance_tag_CoG, 0.0);
     n.param("transform_to_world_frame", transform_to_world_frame, false);
@@ -15,60 +12,138 @@ whycon::ViconPublisher::ViconPublisher(ros::NodeHandle &n) {
     // n.param("target_frame", target_frame, std::string("target"));
 
     // broadcaster = boost::make_shared<tf::TransformBroadcaster>();
-    vicon_quad_sub = n.subscribe(vicon_quad_topic, 1, &whycon::ViconPublisher::vicon_quad_callback, this);
-    ROS_INFO("vicon subscribed to odometry msg quadrotor: %s", vicon_quad_topic.c_str());
-    vicon_payload_sub = n.subscribe(vicon_payload_topic.c_str(), 1, &whycon::ViconPublisher::vicon_payload_callback,
-                                    this);
-    ROS_INFO("vicon subscribed to odometry msg payload: %s", vicon_payload_topic.c_str());
+    //vicon_quad_sub.subscribe(n, vicon_payload_topic.c_str(), 4);
+//    message_filters::Subscriber<nav_msgs::Odometry> vicon_quad_sub(n, vicon_quad_topic.c_str(), 2);
+//    vicon_quad_sub = n.subscribe(vicon_quad_topic, 1, &whycon::ViconPublisher::vicon_quad_callback, this);
+//    ROS_INFO("vicon subscribed to odometry msg quadrotor: %s", vicon_quad_topic.c_str());
+//    message_filters::Subscriber<nav_msgs::Odometry> vicon_payload_sub(n, vicon_payload_topic.c_str(), 2);
+//    //vicon_payload_sub.subscribe(n, vicon_payload_topic.c_str(), 4);
+//    ROS_INFO("vicon subscribed to odometry msg payload: %s", vicon_payload_topic.c_str());
+
+//    typedef sync_policies::ApproximateTime<nav_msgs::Odometry, nav_msgs::Odometry> ViconSyncPolicy;
+//    message_filters::Synchronizer<ViconSyncPolicy> ViconSynchronizer(ViconSyncPolicy(2), vicon_quad_sub, vicon_payload_sub);
+//    ViconSynchronizer.registerCallback(boost::bind(&ViconPublisher::vicon_callback, this, _1, _2));
+
+//    //message_filters::Subscriber<nav_msgs::Odometry> vicon_quad_sub(n, vicon_quad_topic.c_str(), 1);
+//    vicon_quad_sub.subscribe(n, "/vicon/QuadrotorBashful/odom", 1);
+//    ROS_INFO("vicon subscribed to odometry msg quadrotor: %s", vicon_quad_topic.c_str());
+//    //message_filters::Subscriber<nav_msgs::Odometry> vicon_payload_sub(n, vicon_payload_topic.c_str(), 1);
+//    vicon_payload_sub.subscribe(n, "/vicon/Bashful/odom", 1);
+//    ROS_INFO("vicon subscribed to odometry msg payload: %s", vicon_payload_topic.c_str());
+//
+//    vicon_quad_sub2 = n.subscribe("/vicon/QuadrotorBashful/odom", 1, &whycon::ViconPublisher::vicon_quad_callback, this);
+//    ROS_INFO("vicon subscribed to odometry msg quadrotor: %s", vicon_quad_topic.c_str());
+//    vicon_payload_sub2 = n.subscribe("/vicon/Bashful/odom", 1, &whycon::ViconPublisher::vicon_payload_callback, this);
+//    ROS_INFO("vicon subscribed to odometry msg payload: %s", vicon_payload_topic.c_str());
+//
+//    typedef sync_policies::ApproximateTime<nav_msgs::Odometry,nav_msgs::Odometry> ViconSyncPolicy;
+//    Synchronizer<ViconSyncPolicy> ViconSynchronizer(ViconSyncPolicy(2), vicon_quad_sub, vicon_payload_sub);
+//    ViconSynchronizer.registerCallback(boost::bind(&whycon::ViconPublisher::vicon_callback, this, _1, _2));
+
+//    vicon_quad_sub.subscribe(n, "/vicon/QuadrotorBashful/odom", 1);
+//    vicon_payload_sub.subscribe(n, "/vicon/PayloadBashful/odom", 1);
+//
+//    typedef sync_policies::ApproximateTime<nav_msgs::Odometry, nav_msgs::Odometry> MySyncPolicy;
+//    // ApproximateTime takes a queue size as its constructor argument, hence MySyncPolicy(10)
+//    Synchronizer<MySyncPolicy> sync(MySyncPolicy(10), vicon_quad_sub, vicon_payload_sub);
+//    sync.registerCallback(boost::bind(callback, _1, _2));
+
+//    message_filters::Subscriber<Image> image1_sub(nh, "image1", 1);
+//    message_filters::Subscriber<Image> image2_sub(nh, "image2", 1);
+//    typedef sync_policies::ApproximateTime<Image, Image> MySyncPolicy;
+//    Synchronizer<MySyncPolicy> sync(MySyncPolicy(1), image1_sub, image2_sub);
+//    sync.registerCallback(boost::bind(&callback, _1, _2));
 
     odom_vicon_pub = n.advertise<nav_msgs::Odometry>("odom_vicon", 1);
 }
 
-void whycon::ViconPublisher::vicon_payload_callback(const nav_msgs::Odometry &msg) {
-    //ROS_INFO("v_payload %f", std::abs(time_new_vicon_payload_ - time_new_vicon_quad_));
-    time_new_vicon_payload_ = msg.header.stamp.sec + msg.header.stamp.nsec * 1e-9;
-    //ROS_INFO("v_payload +");
+void whycon::ViconPublisher::vicon_callback(const nav_msgs::OdometryConstPtr& msg_quad, const nav_msgs::OdometryConstPtr& msg_payload) {
+    time_new_vicon_payload_ = msg_payload->header.stamp.sec + msg_payload->header.stamp.nsec * 1e-9;
+    time_new_vicon_quad_ = msg_quad->header.stamp.sec + msg_quad->header.stamp.nsec * 1e-9;
 
-    vicon_payload_pos_ = {msg.pose.pose.position.x, msg.pose.pose.position.y, msg.pose.pose.position.z};
-    vicon_payload_vel_ = {msg.twist.twist.linear.x, msg.twist.twist.linear.y, msg.twist.twist.linear.z};
+    if (std::abs(time_new_vicon_payload_ - time_new_vicon_quad_) > 0.5/150.0) {
+        ROS_INFO("too big");
+        return;
+    }
 
-    if (std::abs(time_new_vicon_payload_ - time_new_vicon_quad_) < (1.0/150.0)/2.0) {
-        vicon_publish_msg(msg.header);
+    ROS_INFO("timeDiff Vicon: %f", std::abs(time_new_vicon_payload_ - time_new_vicon_quad_));
+
+    vicon_payload_pos_ = {msg_payload->pose.pose.position.x, msg_payload->pose.pose.position.y, msg_payload->pose.pose.position.z};
+    vicon_payload_vel_ = {msg_payload->twist.twist.linear.x, msg_payload->twist.twist.linear.y, msg_payload->twist.twist.linear.z};
+
+    R_WB_ = {1 - 2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.y -
+             2 * msg_quad->pose.pose.orientation.z * msg_quad->pose.pose.orientation.z,
+             2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.y -
+             2 * msg_quad->pose.pose.orientation.z * msg_quad->pose.pose.orientation.w,
+             2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.z +
+             2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.w,
+             2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.y +
+             2 * msg_quad->pose.pose.orientation.z * msg_quad->pose.pose.orientation.w,
+             1 - 2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.x -
+             2 * msg_quad->pose.pose.orientation.z * msg_quad->pose.pose.orientation.z,
+             2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.z -
+             2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.w,
+             2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.z -
+             2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.w,
+             2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.z +
+             2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.w,
+             1 - 2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.x -
+             2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.y};
+
+    vicon_quad_pos_ = {msg_quad->pose.pose.position.x, msg_quad->pose.pose.position.y, msg_quad->pose.pose.position.z};
+    vicon_quad_vel_ = {msg_quad->twist.twist.linear.x, msg_quad->twist.twist.linear.y, msg_quad->twist.twist.linear.z};
+    vicon_quad_angVel_ = {msg_quad->twist.twist.angular.x, msg_quad->twist.twist.angular.y, msg_quad->twist.twist.angular.z};
+
+    if (std::abs(time_new_vicon_payload_ - time_new_vicon_quad_) < 1.0) {// (1.0/150.0)/2.0) {
+        vicon_publish_msg(msg_quad->header);
     }
 }
 
-void whycon::ViconPublisher::vicon_quad_callback(const nav_msgs::Odometry &msg) {
-    //ROS_INFO("q_payload %f", std::abs(time_new_vicon_payload_ - time_new_vicon_quad_));
-    time_new_vicon_quad_ = msg.header.stamp.sec + msg.header.stamp.nsec * 1e-9;
-
-    //ROS_INFO("q_payload +");
-    R_WB_ = {1 - 2 * msg.pose.pose.orientation.y * msg.pose.pose.orientation.y -
-             2 * msg.pose.pose.orientation.z * msg.pose.pose.orientation.z,
-             2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.y -
-             2 * msg.pose.pose.orientation.z * msg.pose.pose.orientation.w,
-             2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.z +
-             2 * msg.pose.pose.orientation.y * msg.pose.pose.orientation.w,
-             2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.y +
-             2 * msg.pose.pose.orientation.z * msg.pose.pose.orientation.w,
-             1 - 2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.x -
-             2 * msg.pose.pose.orientation.z * msg.pose.pose.orientation.z,
-             2 * msg.pose.pose.orientation.y * msg.pose.pose.orientation.z -
-             2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.w,
-             2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.z -
-             2 * msg.pose.pose.orientation.y * msg.pose.pose.orientation.w,
-             2 * msg.pose.pose.orientation.y * msg.pose.pose.orientation.z +
-             2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.w,
-             1 - 2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.x -
-             2 * msg.pose.pose.orientation.y * msg.pose.pose.orientation.y};
-
-    vicon_quad_pos_ = {msg.pose.pose.position.x, msg.pose.pose.position.y, msg.pose.pose.position.z};
-    vicon_quad_vel_ = {msg.twist.twist.linear.x, msg.twist.twist.linear.y, msg.twist.twist.linear.z};
-    vicon_quad_angVel_ = {msg.twist.twist.angular.x, msg.twist.twist.angular.y, msg.twist.twist.angular.z};
-
-    if (std::abs(time_new_vicon_payload_ - time_new_vicon_quad_) < (1.0/150.0)/2.0) {
-        vicon_publish_msg(msg.header);
-    }
-}
+//void whycon::ViconPublisher::vicon_payload_callback(const nav_msgs::Odometry &msg) {
+//    //ROS_INFO("v_payload %f", std::abs(time_new_vicon_payload_ - time_new_vicon_quad_));
+//    time_new_vicon_payload_ = msg.header.stamp.sec + msg.header.stamp.nsec * 1e-9;
+//    //ROS_INFO("v_payload +");
+//
+//    vicon_payload_pos_ = {msg.pose.pose.position.x, msg.pose.pose.position.y, msg.pose.pose.position.z};
+//    vicon_payload_vel_ = {msg.twist.twist.linear.x, msg.twist.twist.linear.y, msg.twist.twist.linear.z};
+//
+//    if (std::abs(time_new_vicon_payload_ - time_new_vicon_quad_) < (1.0/150.0)/2.0) {
+//        vicon_publish_msg(msg.header);
+//    }
+//}
+//
+//void whycon::ViconPublisher::vicon_quad_callback(const nav_msgs::Odometry &msg) {
+//    //ROS_INFO("q_payload %f", std::abs(time_new_vicon_payload_ - time_new_vicon_quad_));
+//    time_new_vicon_quad_ = msg.header.stamp.sec + msg.header.stamp.nsec * 1e-9;
+//
+//    //ROS_INFO("q_payload +");
+//    R_WB_ = {1 - 2 * msg.pose.pose.orientation.y * msg.pose.pose.orientation.y -
+//             2 * msg.pose.pose.orientation.z * msg.pose.pose.orientation.z,
+//             2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.y -
+//             2 * msg.pose.pose.orientation.z * msg.pose.pose.orientation.w,
+//             2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.z +
+//             2 * msg.pose.pose.orientation.y * msg.pose.pose.orientation.w,
+//             2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.y +
+//             2 * msg.pose.pose.orientation.z * msg.pose.pose.orientation.w,
+//             1 - 2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.x -
+//             2 * msg.pose.pose.orientation.z * msg.pose.pose.orientation.z,
+//             2 * msg.pose.pose.orientation.y * msg.pose.pose.orientation.z -
+//             2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.w,
+//             2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.z -
+//             2 * msg.pose.pose.orientation.y * msg.pose.pose.orientation.w,
+//             2 * msg.pose.pose.orientation.y * msg.pose.pose.orientation.z +
+//             2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.w,
+//             1 - 2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.x -
+//             2 * msg.pose.pose.orientation.y * msg.pose.pose.orientation.y};
+//
+//    vicon_quad_pos_ = {msg.pose.pose.position.x, msg.pose.pose.position.y, msg.pose.pose.position.z};
+//    vicon_quad_vel_ = {msg.twist.twist.linear.x, msg.twist.twist.linear.y, msg.twist.twist.linear.z};
+//    vicon_quad_angVel_ = {msg.twist.twist.angular.x, msg.twist.twist.angular.y, msg.twist.twist.angular.z};
+//
+//    if (std::abs(time_new_vicon_payload_ - time_new_vicon_quad_) < (1.0/150.0)/2.0) {
+//        vicon_publish_msg(msg.header);
+//    }
+//}
 
 void whycon::ViconPublisher::vicon_publish_msg(const std_msgs::Header_<std::allocator<void>> &header) {
     //ROS_INFO("publish");
