@@ -50,7 +50,7 @@ whycon::WhyConROS::WhyConROS(ros::NodeHandle &n) : is_tracking(false), should_re
 
     //transform_to_world_frame = !vicon_quad_topic.empty();
     if (transform_to_world_frame || publish_vicon) {
-        vicon_quad_sub = n.subscribe(vicon_quad_topic.c_str(), 4, &whycon::WhyConROS::vicon_quad_callback_old, this);
+        vicon_quad_sub = n.subscribe(vicon_quad_topic.c_str(), 4, &whycon::WhyConROS::vicon_quad_callback, this);
         ROS_INFO("subscribed to odometry msg quadrotor: %s", vicon_quad_topic.c_str());
     }
 
@@ -480,96 +480,96 @@ void whycon::WhyConROS::load_transforms(void) {
     ROS_INFO_STREAM("Loaded transformation from \"" << filename << "\"");
 }
 
-void whycon::WhyConROS::vicon_quad_callback(const geometry_msgs::PoseStamped &msg) {
-    //ros::Time now = ros::Time::now();
-    //ros::Duration diff(now - msg.header.stamp);
-    //ROS_INFO("delay vicon:  %d.%d",diff.sec,diff.nsec);
+//void whycon::WhyConROS::vicon_quad_callback(const geometry_msgs::PoseStamped &msg) {
+//    //ros::Time now = ros::Time::now();
+//    //ros::Duration diff(now - msg.header.stamp);
+//    //ROS_INFO("delay vicon:  %d.%d",diff.sec,diff.nsec);
+//
+//    //ROS_INFO("in vicon callback");
+//
+//    if (transform_to_world_frame || publish_vicon) {
+//        time_new_vicon_quad_ = msg.header.stamp;
+////        Eigen::Quaterniond orientationQ(msg.pose.pose.orientation.w,
+////                                        msg.pose.pose.orientation.x,
+////                                        msg.pose.pose.orientation.y,
+////                                        msg.pose.pose.orientation.z);
+////        Eigen::Matrix3d orientationR = orientationQ.toRotationMatrix();
+////        R_WB_ = {orientationR(0,0),orientationR(0,1),orientationR(0,2),
+////                orientationR(1,0),orientationR(1,1),orientationR(1,2),
+////                orientationR(2,0),orientationR(2,1),orientationR(2,2)};
+//
+////        R_WB_ = {1 - 2 * msg.pose.pose.orientation.y * msg.pose.pose.orientation.y -
+////                 2 * msg.pose.pose.orientation.z * msg.pose.pose.orientation.z,
+////                 2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.y -
+////                 2 * msg.pose.pose.orientation.z * msg.pose.pose.orientation.w,
+////                 2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.z +
+////                 2 * msg.pose.pose.orientation.y * msg.pose.pose.orientation.w,
+////                 2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.y +
+////                 2 * msg.pose.pose.orientation.z * msg.pose.pose.orientation.w,
+////                 1 - 2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.x -
+////                 2 * msg.pose.pose.orientation.z * msg.pose.pose.orientation.z,
+////                 2 * msg.pose.pose.orientation.y * msg.pose.pose.orientation.z -
+////                 2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.w,
+////                 2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.z -
+////                 2 * msg.pose.pose.orientation.y * msg.pose.pose.orientation.w,
+////                 2 * msg.pose.pose.orientation.y * msg.pose.pose.orientation.z +
+////                 2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.w,
+////                 1 - 2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.x -
+////                 2 * msg.pose.pose.orientation.y * msg.pose.pose.orientation.y};
+//
+//        R_WB_ = {1 - 2 * msg.pose.orientation.y * msg.pose.orientation.y -
+//                 2 * msg.pose.orientation.z * msg.pose.orientation.z,
+//                 2 * msg.pose.orientation.x * msg.pose.orientation.y -
+//                 2 * msg.pose.orientation.z * msg.pose.orientation.w,
+//                 2 * msg.pose.orientation.x * msg.pose.orientation.z +
+//                 2 * msg.pose.orientation.y * msg.pose.orientation.w,
+//                 2 * msg.pose.orientation.x * msg.pose.orientation.y +
+//                 2 * msg.pose.orientation.z * msg.pose.orientation.w,
+//                 1 - 2 * msg.pose.orientation.x * msg.pose.orientation.x -
+//                 2 * msg.pose.orientation.z * msg.pose.orientation.z,
+//                 2 * msg.pose.orientation.y * msg.pose.orientation.z -
+//                 2 * msg.pose.orientation.x * msg.pose.orientation.w,
+//                 2 * msg.pose.orientation.x * msg.pose.orientation.z -
+//                 2 * msg.pose.orientation.y * msg.pose.orientation.w,
+//                 2 * msg.pose.orientation.y * msg.pose.orientation.z +
+//                 2 * msg.pose.orientation.x * msg.pose.orientation.w,
+//                 1 - 2 * msg.pose.orientation.x * msg.pose.orientation.x -
+//                 2 * msg.pose.orientation.y * msg.pose.orientation.y};
+//
+//        R_WB_queue_.push_back(R_WB_);
+//        time_R_WB_queue_.push_back(time_new_vicon_quad_);
+//        //ROS_INFO("time added");
+//
+////        ROS_INFO("R_WB1 = \n%f %f %f\n%f %f %f\n%f %f %f",
+////                 orientationR(0,0),orientationR(0,1),orientationR(0,2),
+////                 orientationR(1,0),orientationR(1,1),orientationR(1,2),
+////                 orientationR(2,0),orientationR(2,1),orientationR(2,2));
+//
+//    }
+//
+//    if (publish_vicon) {
+////        if (std::abs(time_diff_vicon.toSec()) < 1.0 / 75.0)
+////            ROS_INFO("R_WB %f", 1 / (time_new_vicon_quad_ - time_old_vicon_quad_));
+////        else
+////            ROS_INFO("R_WB -");
+////        time_old_vicon_quad_ = time_new_vicon_quad_;
+//
+//        vicon_quad_pos_ = {msg.pose.position.x, msg.pose.position.y, msg.pose.position.z};
+//    //    vicon_quad_vel_ = {msg.twist.twist.linear.x, msg.twist.twist.linear.y, msg.twist.twist.linear.z};
+//    //    vicon_quad_angVel_ = {msg.twist.twist.angular.x, msg.twist.twist.angular.y, msg.twist.twist.angular.z};
+//        time_diff_vicon = (time_new_vicon_quad_ - time_new_vicon_payload_);
+//        if (std::abs(time_diff_vicon.toSec()) < 1.5*0.01)
+//            vicon_publish_msg(msg.header);
+//    }
+//
+//
+//    //ros::Duration diff2(now2 - msg.header.stamp);
+//    //ros::Duration diff3(ros::Time::now() - now);
+//    //ROS_INFO("delay after calc vicon:  %d.%d",diff2.sec,diff2.nsec);
+//    //ROS_INFO("calculation time vicon:  %d.%d",diff3.sec,diff3.nsec);
+//}
 
-    //ROS_INFO("in vicon callback");
-
-    if (transform_to_world_frame || publish_vicon) {
-        time_new_vicon_quad_ = msg.header.stamp;
-//        Eigen::Quaterniond orientationQ(msg.pose.pose.orientation.w,
-//                                        msg.pose.pose.orientation.x,
-//                                        msg.pose.pose.orientation.y,
-//                                        msg.pose.pose.orientation.z);
-//        Eigen::Matrix3d orientationR = orientationQ.toRotationMatrix();
-//        R_WB_ = {orientationR(0,0),orientationR(0,1),orientationR(0,2),
-//                orientationR(1,0),orientationR(1,1),orientationR(1,2),
-//                orientationR(2,0),orientationR(2,1),orientationR(2,2)};
-
-//        R_WB_ = {1 - 2 * msg.pose.pose.orientation.y * msg.pose.pose.orientation.y -
-//                 2 * msg.pose.pose.orientation.z * msg.pose.pose.orientation.z,
-//                 2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.y -
-//                 2 * msg.pose.pose.orientation.z * msg.pose.pose.orientation.w,
-//                 2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.z +
-//                 2 * msg.pose.pose.orientation.y * msg.pose.pose.orientation.w,
-//                 2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.y +
-//                 2 * msg.pose.pose.orientation.z * msg.pose.pose.orientation.w,
-//                 1 - 2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.x -
-//                 2 * msg.pose.pose.orientation.z * msg.pose.pose.orientation.z,
-//                 2 * msg.pose.pose.orientation.y * msg.pose.pose.orientation.z -
-//                 2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.w,
-//                 2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.z -
-//                 2 * msg.pose.pose.orientation.y * msg.pose.pose.orientation.w,
-//                 2 * msg.pose.pose.orientation.y * msg.pose.pose.orientation.z +
-//                 2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.w,
-//                 1 - 2 * msg.pose.pose.orientation.x * msg.pose.pose.orientation.x -
-//                 2 * msg.pose.pose.orientation.y * msg.pose.pose.orientation.y};
-
-        R_WB_ = {1 - 2 * msg.pose.orientation.y * msg.pose.orientation.y -
-                 2 * msg.pose.orientation.z * msg.pose.orientation.z,
-                 2 * msg.pose.orientation.x * msg.pose.orientation.y -
-                 2 * msg.pose.orientation.z * msg.pose.orientation.w,
-                 2 * msg.pose.orientation.x * msg.pose.orientation.z +
-                 2 * msg.pose.orientation.y * msg.pose.orientation.w,
-                 2 * msg.pose.orientation.x * msg.pose.orientation.y +
-                 2 * msg.pose.orientation.z * msg.pose.orientation.w,
-                 1 - 2 * msg.pose.orientation.x * msg.pose.orientation.x -
-                 2 * msg.pose.orientation.z * msg.pose.orientation.z,
-                 2 * msg.pose.orientation.y * msg.pose.orientation.z -
-                 2 * msg.pose.orientation.x * msg.pose.orientation.w,
-                 2 * msg.pose.orientation.x * msg.pose.orientation.z -
-                 2 * msg.pose.orientation.y * msg.pose.orientation.w,
-                 2 * msg.pose.orientation.y * msg.pose.orientation.z +
-                 2 * msg.pose.orientation.x * msg.pose.orientation.w,
-                 1 - 2 * msg.pose.orientation.x * msg.pose.orientation.x -
-                 2 * msg.pose.orientation.y * msg.pose.orientation.y};
-
-        R_WB_queue_.push_back(R_WB_);
-        time_R_WB_queue_.push_back(time_new_vicon_quad_);
-        //ROS_INFO("time added");
-
-//        ROS_INFO("R_WB1 = \n%f %f %f\n%f %f %f\n%f %f %f",
-//                 orientationR(0,0),orientationR(0,1),orientationR(0,2),
-//                 orientationR(1,0),orientationR(1,1),orientationR(1,2),
-//                 orientationR(2,0),orientationR(2,1),orientationR(2,2));
-
-    }
-
-    if (publish_vicon) {
-//        if (std::abs(time_diff_vicon.toSec()) < 1.0 / 75.0)
-//            ROS_INFO("R_WB %f", 1 / (time_new_vicon_quad_ - time_old_vicon_quad_));
-//        else
-//            ROS_INFO("R_WB -");
-//        time_old_vicon_quad_ = time_new_vicon_quad_;
-
-        vicon_quad_pos_ = {msg.pose.position.x, msg.pose.position.y, msg.pose.position.z};
-    //    vicon_quad_vel_ = {msg.twist.twist.linear.x, msg.twist.twist.linear.y, msg.twist.twist.linear.z};
-    //    vicon_quad_angVel_ = {msg.twist.twist.angular.x, msg.twist.twist.angular.y, msg.twist.twist.angular.z};
-        time_diff_vicon = (time_new_vicon_quad_ - time_new_vicon_payload_);
-        if (std::abs(time_diff_vicon.toSec()) < 1.5*0.01)
-            vicon_publish_msg(msg.header);
-    }
-
-
-    //ros::Duration diff2(now2 - msg.header.stamp);
-    //ros::Duration diff3(ros::Time::now() - now);
-    //ROS_INFO("delay after calc vicon:  %d.%d",diff2.sec,diff2.nsec);
-    //ROS_INFO("calculation time vicon:  %d.%d",diff3.sec,diff3.nsec);
-}
-
-void whycon::WhyConROS::vicon_quad_callback_old(const nav_msgs::Odometry &msg) {
+void whycon::WhyConROS::vicon_quad_callback(const nav_msgs::Odometry &msg) {
     //ros::Time now = ros::Time::now();
     //ros::Duration diff(now - msg.header.stamp);
     //ROS_INFO("delay vicon:  %d.%d",diff.sec,diff.nsec);

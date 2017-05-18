@@ -32,8 +32,8 @@ private:
     void load_transforms(void);
     void publish_results(const std_msgs::Header& header, const cv_bridge::CvImageConstPtr& cv_ptr);
 
-    void vicon_quad_callback(const geometry_msgs::PoseStamped &msg);
-    void vicon_quad_callback_old(const nav_msgs::Odometry &msg);
+    //void vicon_quad_callback(const geometry_msgs::PoseStamped &msg);
+    void vicon_quad_callback(const nav_msgs::Odometry &msg);
     void vicon_payload_callback(const nav_msgs::Odometry &msg);
     void vicon_publish_msg(const std_msgs::Header_<std::allocator<void>>& header); //vicon_publish_msg(msg.header)
 
