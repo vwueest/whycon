@@ -3,7 +3,7 @@
 #include <angles/angles.h>
 
 whycon::ViconPublisher::ViconPublisher(ros::NodeHandle &n) {
-    n.param("cable_length", cable_length, 1.0);
+    n.param("cable_length_", cable_length, 1.0);
     n.param("distance_tag_CoG", distance_tag_CoG, 0.0);
     n.param("transform_to_world_frame", transform_to_world_frame, false);
 
@@ -33,11 +33,11 @@ void whycon::ViconPublisher::vicon_callback(const nav_msgs::OdometryConstPtr& ms
     time_new_vicon_quad_ = msg_quad->header.stamp.sec + msg_quad->header.stamp.nsec * 1e-9;
 
     if (std::abs(time_new_vicon_payload_ - time_new_vicon_quad_) > 0.5/150.0) {
-        ROS_INFO("too big");
+        //ROS_INFO("too big");
         return;
     }
 
-    ROS_INFO("timeDiff Vicon: %f", std::abs(time_new_vicon_payload_ - time_new_vicon_quad_));
+    //ROS_INFO("timeDiff Vicon: %f", std::abs(time_new_vicon_payload_ - time_new_vicon_quad_));
 
     vicon_payload_pos_ = {msg_payload->pose.pose.position.x, msg_payload->pose.pose.position.y, msg_payload->pose.pose.position.z};
     vicon_payload_vel_ = {msg_payload->twist.twist.linear.x, msg_payload->twist.twist.linear.y, msg_payload->twist.twist.linear.z};

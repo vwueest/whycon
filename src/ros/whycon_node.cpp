@@ -8,18 +8,21 @@ int main(int argc, char **argv) {
     whycon::WhyConROS whycon_ros(n);
 
 
-//    // stuff to sync signals
-//    std::string vicon_quad_topic, vicon_payload_topic;
-//    n.param("vicon_quad_topic", vicon_quad_topic, std::string(""));
-//    n.param("vicon_payload_topic", vicon_payload_topic, std::string(""));
-//
-//    message_filters::Subscriber<nav_msgs::Odometry> vicon_quad_sub(n, vicon_quad_topic, 2);
-//    message_filters::Subscriber<nav_msgs::Odometry> vicon_payload_sub(n, vicon_payload_topic, 2);
-//
-//    typedef sync_policies::ApproximateTime<nav_msgs::Odometry, nav_msgs::Odometry> MySyncPolicy;
-//    Synchronizer<MySyncPolicy> sync(MySyncPolicy(10), vicon_quad_sub, vicon_payload_sub);
-//    sync.registerCallback(boost::bind(&whycon::ViconPublisher::vicon_callback, &vicon_publisher, _1, _2));
+    // stuff to sync signals
+    std::string vicon_quad_topic;
+    n.param("vicon_quad_topic", vicon_quad_topic, std::string(""));
 
+    if (vicon_quad_topic.empty())
+        ROS_WARN("Vicon Topic for Quadrotor not defined");
+    else
+        ROS_INFO("Subscribed to %s", vicon_quad_topic.c_str());
+
+    message_filters::Subscriber<nav_msgs::Odometry> vicon_quad_sub(n, vicon_quad_topic, 6);
+    message_filters::Subscriber<geometry_msgs::PointStamped> pixel_coord_sub(n, "pixel_coord", 2);
+
+    typedef message_filters::sync_policies::ApproximateTime<nav_msgs::Odometry, geometry_msgs::PointStamped> MySyncPolicy;
+    message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(10), vicon_quad_sub, pixel_coord_sub);
+    sync.registerCallback(boost::bind(&whycon::WhyConROS::calculate_3D_position, &whycon_ros, _1, _2));
 
     ros::spin();
 }
