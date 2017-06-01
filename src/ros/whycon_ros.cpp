@@ -46,7 +46,7 @@ whycon::WhyConROS::WhyConROS(ros::NodeHandle &n) : is_tracking(false), should_re
     n.getParam("max_eccentricity", parameters.max_eccentricity);
 
     load_transforms();
-    //transform_broadcaster = boost::make_shared<tf::TransformBroadcaster>();
+    // transform_broadcaster = boost::make_shared<tf::TransformBroadcaster>();
 
 //    //transform_to_world_frame = !vicon_quad_topic.empty();
 //    if (transform_to_world_frame || publish_vicon) {
@@ -211,16 +211,16 @@ void whycon::WhyConROS::calculate_3D_position(const nav_msgs::OdometryConstPtr& 
     double dist = (-b_term + sqrt(b_term * b_term - 4 * c_term)) / 2;
 
     // extend vector from quad origin to center of gravity of the load
-    cv::Vec3d whycon_position_bodyFrame = (B_T_BC_ + dist * direction) * //calculate direction in quad frame
-                                          (cable_length_ + distance_tag_CoG) / cable_length_; //adjust length
+    cv::Vec3d whycon_realtive_position_bodyFrame = (B_T_BC_ + dist * direction) * //calculate direction in quad frame
+                                                   (cable_length_ + distance_tag_CoG) / cable_length_; //adjust length
 //    ROS_INFO("Vec01: %f %f %f", whycon_position_bodyFrame(0),whycon_position_bodyFrame(1),whycon_position_bodyFrame(2));
 
     // calculate position for output
     cv::Vec3d whycon_position_outputFrame;
     if (!transform_to_world_frame) //quad frame
-        whycon_position_outputFrame = whycon_position_bodyFrame;
+        whycon_position_outputFrame = whycon_realtive_position_bodyFrame;
     else //world frame
-        whycon_position_outputFrame = R_WB * whycon_position_bodyFrame;
+        whycon_position_outputFrame = R_WB * whycon_realtive_position_bodyFrame;
 //    ROS_INFO("Vec02: %f %f %f", whycon_position_outputFrame(0),whycon_position_outputFrame(1),whycon_position_outputFrame(2));
 
     // calculate angle for output
@@ -253,8 +253,8 @@ void whycon::WhyConROS::calculate_3D_position(const nav_msgs::OdometryConstPtr& 
             //                            whycon_position_outputFrame.dot(whycon_position_outputFrame);
             // Version 3
             whycon_angVel_outputFrame = R_WB *
-                                        whycon_position_bodyFrame.cross( (whycon_position_bodyFrame-whycon_position_bodyFrame_old)/time_diff_last )/
-                                        whycon_position_bodyFrame.dot(whycon_position_bodyFrame) +
+                                        whycon_realtive_position_bodyFrame.cross( (whycon_realtive_position_bodyFrame-whycon_position_bodyFrame_old)/time_diff_last )/
+                                        whycon_realtive_position_bodyFrame.dot(whycon_realtive_position_bodyFrame) +
                                         vicon_quad_angVel;
             // Version 4
             //whycon_angVel_outputFrame = R_WB *
@@ -320,7 +320,7 @@ void whycon::WhyConROS::calculate_3D_position(const nav_msgs::OdometryConstPtr& 
     }
 
     whycon_position_outputFrame_old = whycon_position_outputFrame;
-    whycon_position_bodyFrame_old = whycon_position_bodyFrame;
+    whycon_position_bodyFrame_old = whycon_realtive_position_bodyFrame;
     time_old_whycon = msg_coord->header.stamp;
     //R_WB_old = R_WB;
     whycon_angle_outputFrame_old = whycon_angle_outputFrame;
@@ -331,9 +331,15 @@ void whycon::WhyConROS::calculate_3D_position(const nav_msgs::OdometryConstPtr& 
     // publish results
     nav_msgs::Odometry odom_whycon;
     if (publish_odom_whycon) {
-        odom_whycon.pose.pose.position.x = whycon_position_outputFrame(0);
-        odom_whycon.pose.pose.position.y = whycon_position_outputFrame(1);
-        odom_whycon.pose.pose.position.z = whycon_position_outputFrame(2);
+        if (transform_to_world_frame) {
+          odom_whycon.pose.pose.position.x = whycon_position_outputFrame(0)+msg_quad->pose.pose.position.x;
+          odom_whycon.pose.pose.position.y = whycon_position_outputFrame(1)+msg_quad->pose.pose.position.y;
+          odom_whycon.pose.pose.position.z = whycon_position_outputFrame(2)+msg_quad->pose.pose.position.z;
+        } else {
+          odom_whycon.pose.pose.position.x = whycon_position_outputFrame(0);
+          odom_whycon.pose.pose.position.y = whycon_position_outputFrame(1);
+          odom_whycon.pose.pose.position.z = whycon_position_outputFrame(2);
+        }
 
         odom_whycon.twist.twist.linear.x = whycon_velocity_outputFrame(0);
         odom_whycon.twist.twist.linear.y = whycon_velocity_outputFrame(1);
@@ -342,7 +348,7 @@ void whycon::WhyConROS::calculate_3D_position(const nav_msgs::OdometryConstPtr& 
         odom_whycon.pose.pose.orientation.x = whycon_angle_outputFrame(0);
         odom_whycon.pose.pose.orientation.y = whycon_angle_outputFrame(1);
         odom_whycon.pose.pose.orientation.z = whycon_angle_outputFrame(2);
-        odom_whycon.pose.pose.orientation.z = 0;
+        odom_whycon.pose.pose.orientation.w = 0;
 
         odom_whycon.twist.twist.angular.x = whycon_angVel_outputFrame(0);
         odom_whycon.twist.twist.angular.y = whycon_angVel_outputFrame(1);
