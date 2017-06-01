@@ -46,18 +46,6 @@ whycon::WhyConROS::WhyConROS(ros::NodeHandle &n) : is_tracking(false), should_re
   n.getParam("max_eccentricity", parameters.max_eccentricity);
 
   load_transforms();
-  // transform_broadcaster = boost::make_shared<tf::TransformBroadcaster>();
-
-  //    //transform_to_world_frame = !vicon_quad_topic.empty();
-  //    if (transform_to_world_frame || publish_vicon) {
-  //        vicon_quad_sub = n.subscribe(vicon_quad_topic.c_str(), 4, &whycon::WhyConROS::vicon_quad_callback, this);
-  //        ROS_INFO("subscribed to odometry msg quadrotor: %s", vicon_quad_topic.c_str());
-  //    }
-  //
-  //    if (publish_vicon) {
-  //        vicon_payload_sub = n.subscribe(vicon_payload_topic.c_str(),4,&whycon::WhyConROS::vicon_payload_callback,this);
-  //        ROS_INFO("subscribed to odometry msg payload: %s", vicon_payload_topic.c_str());
-  //    }
 
   /* initialize ros */
   int input_queue_size = 1;
@@ -122,25 +110,25 @@ void whycon::WhyConROS::on_image(const sensor_msgs::ImageConstPtr &image_msg,
       if (publish_images) {
         std::ostringstream ostr;
         ostr << std::fixed << std::setprecision(2);
-        ostr << coord << " " << id;
+        //ostr << coord << " " << id;
+        if (system->targets > 1)
+          ostr << " id: " << id;
+        else
+          ostr << " ";
         system->get_circle(id).draw(output_image, ostr.str(), cv::Vec3b(0, 255, 255));
-        /*whycon::CircleDetector::Circle new_circle = circle.improveEllipse(cv_ptr->image);
-                new_circle.draw(output_image, ostr.str(), cv::Vec3b(0,255,0));*/
         cv::circle(output_image,camera_model.project3dToPixel(cv::Point3d(coord)),1,cv::Scalar(255,0,255),1,CV_AA);
       }
     }
 
     if (publish_images) {
-      ROS_INFO("about to publish image %d", system->targets);
       cv_bridge::CvImage output_image_bridge = *cv_ptr;
       output_image_bridge.image = output_image;
       image_pub.publish(output_image_bridge);
     }
 
-    //publish_results(image_msg->header, cv_ptr);
     should_reset = false;
 
-  } else if (image_pub.getNumSubscribers() != 0)
+  } else if (publish_images)
     image_pub.publish(cv_ptr);
 
   if (context_pub.getNumSubscribers() != 0) {
@@ -159,28 +147,28 @@ void whycon::WhyConROS::calculate_3D_position(const nav_msgs::OdometryConstPtr& 
 
   // calculate rotation and angular velocity from vicon data
   cv::Matx33d R_WB =
-  {1 - 2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.y -
-   2 * msg_quad->pose.pose.orientation.z * msg_quad->pose.pose.orientation.z,
-   2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.y -
-   2 * msg_quad->pose.pose.orientation.z * msg_quad->pose.pose.orientation.w,
-   2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.z +
-   2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.w,
-   2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.y +
-   2 * msg_quad->pose.pose.orientation.z * msg_quad->pose.pose.orientation.w,
-   1 - 2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.x -
-   2 * msg_quad->pose.pose.orientation.z * msg_quad->pose.pose.orientation.z,
-   2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.z -
-   2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.w,
-   2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.z -
-   2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.w,
-   2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.z +
-   2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.w,
-   1 - 2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.x -
-   2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.y};
+    {1 - 2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.y -
+     2 * msg_quad->pose.pose.orientation.z * msg_quad->pose.pose.orientation.z,
+     2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.y -
+     2 * msg_quad->pose.pose.orientation.z * msg_quad->pose.pose.orientation.w,
+     2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.z +
+     2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.w,
+     2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.y +
+     2 * msg_quad->pose.pose.orientation.z * msg_quad->pose.pose.orientation.w,
+     1 - 2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.x -
+     2 * msg_quad->pose.pose.orientation.z * msg_quad->pose.pose.orientation.z,
+     2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.z -
+     2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.w,
+     2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.z -
+     2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.w,
+     2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.z +
+     2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.w,
+     1 - 2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.x -
+     2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.y};
   cv::Vec3d vicon_quad_angVel =
-  {msg_quad->twist.twist.angular.x,
-   msg_quad->twist.twist.angular.y,
-   msg_quad->twist.twist.angular.z};
+    {msg_quad->twist.twist.angular.x,
+     msg_quad->twist.twist.angular.y,
+     msg_quad->twist.twist.angular.z};
 
   // calculate time difference between Vicon and Camera frame
   double time_diff_vw  ( ros::Duration(msg_coord->header.stamp - msg_quad->header.stamp).toSec() );
@@ -207,9 +195,9 @@ void whycon::WhyConROS::calculate_3D_position(const nav_msgs::OdometryConstPtr& 
   cam2world(point3D, point2D, &model);
 
   // adapt coord sys of ocam to coord sys of whycon
-  cv::Vec3d direction({point3D[1],
-                       point3D[0],
-                       -point3D[2]});
+  cv::Vec3d direction = {point3D[1],
+                         point3D[0],
+                        -point3D[2]};
 
   // rotate from camera frame to quad frame
   direction = R_BC_ * direction;
@@ -222,7 +210,6 @@ void whycon::WhyConROS::calculate_3D_position(const nav_msgs::OdometryConstPtr& 
   // extend vector from quad origin to center of gravity of the load
   cv::Vec3d whycon_realtive_position_bodyFrame = (B_T_BC_ + dist * direction) * //calculate direction in quad frame
       (cable_length_ + distance_tag_CoG) / cable_length_; //adjust length
-  //    ROS_INFO("Vec01: %f %f %f", whycon_position_bodyFrame(0),whycon_position_bodyFrame(1),whycon_position_bodyFrame(2));
 
   // calculate position for output
   cv::Vec3d whycon_position_outputFrame;
@@ -230,20 +217,17 @@ void whycon::WhyConROS::calculate_3D_position(const nav_msgs::OdometryConstPtr& 
     whycon_position_outputFrame = whycon_realtive_position_bodyFrame;
   else //world frame
     whycon_position_outputFrame = R_WB * whycon_realtive_position_bodyFrame;
-  //    ROS_INFO("Vec02: %f %f %f", whycon_position_outputFrame(0),whycon_position_outputFrame(1),whycon_position_outputFrame(2));
 
   // calculate angle for output
   cv::Vec3d whycon_angle_outputFrame = { atan2(whycon_position_outputFrame(1), -whycon_position_outputFrame(2)),
-                                         -atan2(whycon_position_outputFrame(0), -whycon_position_outputFrame(2)),
+                                        -atan2(whycon_position_outputFrame(0), -whycon_position_outputFrame(2)),
                                          0};
-  //    ROS_INFO("Vec03: %f %f %f", whycon_angle_outputFrame(0),whycon_angle_outputFrame(1),whycon_angle_outputFrame(2));
 
   // calculate velocity for output
   cv::Vec3d whycon_velocity_outputFrame;
   if (!time_old_whycon.isZero()) {
     whycon_velocity_outputFrame = (whycon_position_outputFrame - whycon_position_outputFrame_old) /
-        (time_diff_last);
-    //        ROS_INFO("Vec04: %f %f %f", whycon_velocity_outputFrame(0),whycon_velocity_outputFrame(1),whycon_velocity_outputFrame(2));
+                                  (time_diff_last);
   }
 
   // calculate angular velocity for output
@@ -251,7 +235,7 @@ void whycon::WhyConROS::calculate_3D_position(const nav_msgs::OdometryConstPtr& 
   if (!time_old_whycon.isZero()) {
     if (!transform_to_world_frame) {
       whycon_angVel_outputFrame = (whycon_angle_outputFrame - whycon_angle_outputFrame_old) /
-          (time_diff_last);
+                                  (time_diff_last);
     } else {
       // Version 1
       //whycon_angVel_outputFrame = (whycon_angle_outputFrame - whycon_angle_outputFrame_old) /
@@ -261,9 +245,9 @@ void whycon::WhyConROS::calculate_3D_position(const nav_msgs::OdometryConstPtr& 
       //                            whycon_position_outputFrame.dot(whycon_position_outputFrame);
       // Version 3
       whycon_angVel_outputFrame = R_WB *
-          whycon_realtive_position_bodyFrame.cross( (whycon_realtive_position_bodyFrame-whycon_position_bodyFrame_old)/time_diff_last )/
-          whycon_realtive_position_bodyFrame.dot(whycon_realtive_position_bodyFrame) +
-          vicon_quad_angVel;
+                                  whycon_realtive_position_bodyFrame.cross( (whycon_realtive_position_bodyFrame-whycon_position_bodyFrame_old)/time_diff_last )/
+                                  whycon_realtive_position_bodyFrame.dot(whycon_realtive_position_bodyFrame) +
+                                  vicon_quad_angVel;
       // Version 4
       //whycon_angVel_outputFrame = R_WB *
       //                            (R_WB.t() * whycon_angle_outputFrame - R_WBold.t() * whycon_angle_outputFrame_old) /
@@ -299,14 +283,13 @@ void whycon::WhyConROS::calculate_3D_position(const nav_msgs::OdometryConstPtr& 
       whycon_angVel_y(1,0) = whycon_angVel_outputFrame(1);
       whycon_angVel_y(2,0) = whycon_angVel_outputFrame(2);
     }
-  } else {
-    whycon_angVel_outputFrame = {0.0, 0.0, 0.0};
   }
+  else
+    whycon_angVel_outputFrame = {0.0, 0.0, 0.0};
 
   whycon_position_outputFrame_old = whycon_position_outputFrame;
   whycon_position_bodyFrame_old = whycon_realtive_position_bodyFrame;
   time_old_whycon = msg_coord->header.stamp;
-  //R_WB_old = R_WB;
   whycon_angle_outputFrame_old = whycon_angle_outputFrame;
 
 
@@ -338,7 +321,6 @@ void whycon::WhyConROS::calculate_3D_position(const nav_msgs::OdometryConstPtr& 
     odom_whycon.twist.twist.angular.y = whycon_angVel_outputFrame(1);
     odom_whycon.twist.twist.angular.z = whycon_angVel_outputFrame(2);
 
-    // odom_whycon.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, pose_world.rot(0), pose_world.rot(1));
     odom_whycon.header = msg_coord->header;
     odom_whycon_pub.publish(odom_whycon);
   }
@@ -348,329 +330,6 @@ bool whycon::WhyConROS::reset(std_srvs::Empty::Request &request, std_srvs::Empty
   should_reset = true;
   return true;
 }
-
-// void whycon::WhyConROS::publish_results(const std_msgs::Header &header, const cv_bridge::CvImageConstPtr &cv_ptr) {
-//    publish_images = (image_pub.getNumSubscribers() != 0);
-//    publish_odom_whycon = (odom_whycon_pub.getNumSubscribers() != 0);
-//    publish_pixels = (pixel_pub.getNumSubscribers() != 0);
-//    publish_vicon = (odom_vicon_pub.getNumSubscribers() != 0);
-//
-//    time_new_whycon_ = header.stamp;
-//    //ros::Duration t_diff_w_v(time_new_whycon_-time_new_vicon_quad_);
-//
-////    ///////////////////////////////////
-////    time_R_WB_queue_.clear();
-////    time_R_WB_queue_.push_back(time_new_whycon_+ros::Duration(-3.0,0));
-////    time_R_WB_queue_.push_back(time_new_whycon_+ros::Duration(-2.0,0));
-////    time_R_WB_queue_.push_back(time_new_whycon_+ros::Duration(3.0,0));
-////    time_R_WB_queue_.push_back(time_new_whycon_+ros::Duration(4.0,0));
-////    time_R_WB_queue_.push_back(time_new_whycon_+ros::Duration(5.0,0));
-////    time_R_WB_queue_.push_back(time_new_whycon_+ros::Duration(6.0,0));
-////    time_R_WB_queue_.push_back(time_new_whycon_+ros::Duration(7.0,0));
-////    time_R_WB_queue_.push_back(time_new_whycon_+ros::Duration(8.0,0));
-////
-////    time_new_whycon_ = time_new_whycon_+ros::Duration(-1.0,0);
-////
-////    R_WB_queue_.clear();
-////    R_WB_queue_.push_back(cv::Matx33d(1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0));
-////    R_WB_queue_.push_back(cv::Matx33d(2.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0));
-////    R_WB_queue_.push_back(cv::Matx33d(3.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0));
-////    R_WB_queue_.push_back(cv::Matx33d(4.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0));
-////    R_WB_queue_.push_back(cv::Matx33d(5.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0));
-////    R_WB_queue_.push_back(cv::Matx33d(6.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0));
-////    R_WB_queue_.push_back(cv::Matx33d(7.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0));
-////    R_WB_queue_.push_back(cv::Matx33d(8.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0));
-////    ///////////////////////////////////
-//
-//    // find correct R_WB_ in R_WB_queue
-//    if (transform_to_world_frame) {
-//
-//        if (time_R_WB_queue_.empty()) {
-//            ROS_INFO("No vicon data available, yet");
-//            return;
-//        }
-//
-//        double this_diff, next_diff;
-//        this_diff = std::abs((time_new_whycon_ - time_R_WB_queue_[0]).toSec());
-//        int i;
-//        if (time_R_WB_queue_.size() > 1) {
-//
-//            for (i = 1; i < time_R_WB_queue_.size(); ++i) {
-//                //ROS_INFO("checking time-diff:      %f", this_diff);
-//                next_diff = std::abs((time_new_whycon_ - time_R_WB_queue_[i]).toSec());
-//                if (next_diff < this_diff)
-//                    this_diff = next_diff;
-//                else {
-//                    //ROS_INFO("closest time-diff found: %f", (time_new_whycon_ - time_R_WB_queue_[i]).toSec());
-//                    break;
-//                }
-//            }
-//
-//            if (this_diff > 1) { //0.5 / 150.0) {
-//                //ROS_INFO("too old measurement");
-//                return;
-//            }
-//
-//            R_WB_queue_.erase(R_WB_queue_.begin(), R_WB_queue_.begin() + i - 1);
-//            time_R_WB_queue_.erase(time_R_WB_queue_.begin(), time_R_WB_queue_.begin() + i - 1);
-//            vicon_quad_angVel_queue_.erase(vicon_quad_angVel_queue_.begin(), vicon_quad_angVel_queue_.begin() + i - 1);
-//        }
-//        R_WB_ = R_WB_queue_[0];
-//        vicon_quad_angVel_ = vicon_quad_angVel_queue_[0];
-//
-//        num_meas++;
-//        avg = (avg * (num_meas - 1) + this_diff)/num_meas;
-//        //ROS_INFO("w-v: avg %f",avg);
-//
-//        //ROS_INFO("length of vectors:       %d", time_R_WB_queue_.size());
-//        //ROS_INFO("closest value found:     %f",R_WB_(0,0));
-//        //ROS_INFO("first remaining element: %f",R_WB_queue_[0](0,0));
-//        //ROS_INFO("size of remaining vec:   %d",time_R_WB_queue_.size());
-//    }
-//
-//
-//
-//
-////    time_older = time_R_WB_queue_.back();
-////    auto time_R_WB_front = time_R_WB_queue_.begin();
-////    std::advance(time_R_WB_front,1);
-////    time_older = *time_R_WB_front;
-////    ROS_INFO("timediff 0: time %f",std::abs(time_older - time_new_whycon_));
-////    while ( std::abs(time_R_WB_queue_.front() - time_new_whycon_) <  std::abs(time_older - time_new_whycon_)) {
-////            ROS_INFO("timediff 1: time %f",std::abs(time_older - time_new_whycon_));
-////            ROS_INFO("timediff 2: time %f",std::abs(time_R_WB_queue_.front() - time_new_whycon_));
-////            time_older = time_R_WB_queue_.front();
-////            time_R_WB_queue_.pop();
-////            R_WB_queue_.pop();
-////    }
-////    ROS_INFO("chosen: %f",std::abs(time_older - time_new_whycon_));
-////    R_WB_ = R_WB_queue_.front();
-////    R_WB_queue_.pop();
-////    time_R_WB_queue_.push(time_older);
-////    ROS_INFO("next in line: R_WB %f, time %f",R_WB_queue_.front()(0,0),time_R_WB_queue_.front());
-////    ROS_INFO("sizes: R_WB %d, time %d",R_WB_queue_.size(),time_R_WB_queue_.size());
-////    ROS_INFO("values: R_WB %f, time %f",R_WB_(0,0),time_older);
-////
-////    if( std::abs(time_new_whycon_ - time_older) > 0.015 ) {
-////        ROS_INFO("transform too old: %f", time_new_whycon_ - time_older);
-////        return;
-////    }
-////
-////    ROS_INFO("w-v:     %f",t_diff_w_v.toSec());
-//
-//    //ros::Time now = ros::Time::now();
-//    //ros::Duration diff(now - header.stamp);
-//    //ROS_INFO("delay whycon: %d.%d",diff.sec,diff.nsec);
-//
-//    if (!publish_images && !publish_pixels && !publish_odom_whycon && !publish_vicon) return;
-//
-//    // prepare image output
-//    cv::Mat output_image;
-//    if (publish_images)
-//        output_image = cv_ptr->image.clone();
-//
-//    // geometry_msgs::PoseArray pose_array;
-//    // geometry_msgs::PoseArray pose_world_array;
-//
-//    // go through detected targets
-//    for (int i = 0; i < system->targets; i++) {
-//        const whycon::CircleDetector::Circle &circle = system->get_circle(i);
-//        whycon::LocalizationSystem::Pose pose;
-//
-//        if (!use_omni_model) {
-//            pose = system->get_pose(circle);
-//        } else {
-//            //use ocam model to determine direction
-//            double point3D[3];
-//            double point2D[2] = {circle.y, circle.x};
-//            //ROS_INFO("circle position:\n%f %f",point2D[0],point2D[1]);
-//
-//            cam2world(point3D, point2D, &model);
-//            //ROS_INFO("direction before rot:\n%f %f %f",point3D[0],point3D[1],point3D[2]);
-//
-//            // adapt coord sys of ocam to coord sys of whycon
-//            direction = {point3D[1], point3D[0], -point3D[2]};
-//            //ROS_INFO("direction after rot:\n%f %f %f",direction[0],direction[1],direction[2]);
-//
-//            // rotate to quad frame
-//            direction = R_BC_ * direction;
-//            //ROS_INFO("direction in quad frame:\n%f %f %f",direction[0],direction[1],direction[2]);
-//
-//            // calculate distance camera-load
-//            b_term = 2 * B_T_BC_.dot(direction);
-//            c_term = B_T_BC_.dot(B_T_BC_) - cable_length_ * cable_length_;
-//            dist = (-b_term + sqrt(b_term * b_term - 4 * c_term)) / 2;
-//            //ROS_INFO("\nb_term %f\nc_term %f\ndist %f",b_term,c_term,dist);
-//
-//            // save to pose
-//            //ros::getGlobalCallbackQueue()->callAvailable(ros::WallDuration(0));
-//            //ros::spinOnce();
-//            whycon_position_bodyFrame_ = (B_T_BC_ + dist * direction) * (cable_length_ + distance_tag_CoG) / cable_length_;
-//
-//            // calculate position for output
-//            if (!transform_to_world_frame)
-//                whycon_position_outputFrame = whycon_position_bodyFrame_;
-//            else
-//                whycon_position_outputFrame = R_WB_ * whycon_position_bodyFrame_;
-//
-//            // calculate angle for output
-//            whycon_angle_outputFrame = { atan2(whycon_position_outputFrame(1), -whycon_position_outputFrame(2)),
-//                                        -atan2(whycon_position_outputFrame(0), -whycon_position_outputFrame(2)),
-//                                         0};
-//
-//            // calculate velocity for output
-//            if (!time_old_whycon.isZero()) {
-//                time_diff_whycon = time_new_whycon_ - time_old_whycon;
-//                whycon_velocity_outputFrame = (whycon_position_outputFrame - whycon_position_outputFrame_old) /
-//                                              (time_diff_whycon.toSec());
-//            }
-//
-//            // calculate angular velocity for output
-//            if (!time_old_whycon.isZero()) {
-//                if (!transform_to_world_frame)
-//                    whycon_angVel_outputFrame = (whycon_angle_outputFrame - whycon_angle_outputFrame_old) /
-//                                                (time_diff_whycon.toSec());
-//                else {
-//                    // Version 1
-//                    //whycon_angVel_outputFrame = (whycon_angle_outputFrame - whycon_angle_outputFrame_old) /
-//                    //                            (time_diff_whycon.toSec());
-//                    // Version 2
-//                    //whycon_angVel_outputFrame = whycon_position_outputFrame.cross(whycon_velocity_outputFrame) /
-//                    //                            whycon_position_outputFrame.dot(whycon_position_outputFrame);
-//                    // Version 3
-//                    whycon_angVel_outputFrame = R_WB_ *
-//                                                whycon_position_bodyFrame_.cross((whycon_position_bodyFrame_-whycon_position_bodyFrame_old)/time_diff_whycon.toSec())/
-//                                                whycon_position_bodyFrame_.dot(whycon_position_bodyFrame_) +
-//                                                vicon_quad_angVel_;
-//                    // Version 4
-//                    //whycon_angVel_outputFrame = R_WB_ *
-//                    //                            (R_WB_.t() * whycon_angle_outputFrame - R_WB_old.t() * whycon_angle_outputFrame_old) /
-//                    //                            (time_diff_whycon.toSec()) +
-//                    //                            vicon_quad_angVel_;
-//                }
-//                //(vicon_payload_pos_ - vicon_quad_pos_).cross(vicon_payload_vel_ - vicon_quad_vel_) /
-//                //(vicon_payload_pos_ - vicon_quad_pos_).dot(  vicon_payload_pos_ - vicon_quad_pos_)
-//
-////                whycon_angVel_outputFrame =    filter_a  * whycon_angVel_outputFrame +
-////                                            (1-filter_a) * whycon_angVel_outputFrame_old;
-////                whycon_angVel_outputFrame_old = whycon_angVel_outputFrame;
-////                whycon_angVel_outputFrame_old2 = whycon_angVel_outputFrame_old;
-//            }
-//        }
-//        coord = whycon_position_bodyFrame_;
-//
-//        // draw each target
-//        if (publish_images) {
-//            std::ostringstream ostr;
-//            ostr << std::fixed << std::setprecision(2);
-//            ostr << coord << " " << i;
-//            circle.draw(output_image, ostr.str(), cv::Vec3b(0, 255, 255));
-//            /*whycon::CircleDetector::Circle new_circle = circle.improveEllipse(cv_ptr->image);
-//            new_circle.draw(output_image, ostr.str(), cv::Vec3b(0,255,0));*/
-//            cv::circle(output_image,camera_model.project3dToPixel(cv::Point3d(coord)),1,cv::Scalar(255,0,255),1,CV_AA);
-//        }
-//
-//        if (publish_odom_whycon) {
-//            odom_whycon.pose.pose.position.x = whycon_position_outputFrame(0);
-//            odom_whycon.pose.pose.position.y = whycon_position_outputFrame(1);
-//            odom_whycon.pose.pose.position.z = whycon_position_outputFrame(2);
-//
-//            odom_whycon.twist.twist.linear.x = whycon_velocity_outputFrame(0);
-//            odom_whycon.twist.twist.linear.y = whycon_velocity_outputFrame(1);
-//            odom_whycon.twist.twist.linear.z = whycon_velocity_outputFrame(2);
-//
-//            odom_whycon.pose.pose.orientation.x = whycon_angle_outputFrame(0);
-//            odom_whycon.pose.pose.orientation.y = whycon_angle_outputFrame(1);
-//            odom_whycon.pose.pose.orientation.z = whycon_angle_outputFrame(2);
-//            odom_whycon.pose.pose.orientation.z = 0;
-//
-//            odom_whycon.twist.twist.angular.x = whycon_angVel_outputFrame(0);
-//            odom_whycon.twist.twist.angular.y = whycon_angVel_outputFrame(1);
-//            odom_whycon.twist.twist.angular.z = whycon_angVel_outputFrame(2);
-//
-//            // odom_whycon.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, pose_world.rot(0), pose_world.rot(1));
-//            odom_whycon.header = header;
-//            odom_whycon.header.frame_id = frame_id;
-//            odom_whycon_pub.publish(odom_whycon);
-//        }
-//
-//        whycon_position_outputFrame_old = whycon_position_outputFrame;
-//        whycon_position_bodyFrame_old = whycon_position_bodyFrame_;
-//        whycon_angle_outputFrame_old = whycon_angle_outputFrame;
-//        time_old_whycon = time_new_whycon_;
-//        R_WB_old = R_WB_;
-//
-//        // if (publish_vicon) {
-//        //     //ROS_INFO("vicon_payload_pos_: %f %f %f",vicon_payload_pos_(0),vicon_payload_pos_(1),vicon_payload_pos_(2));
-//        //     //ROS_INFO("vicon_quad_pos_: %f %f %f",vicon_quad_pos_(0),vicon_quad_pos_(1),vicon_quad_pos_(2));
-//        //     cv::Vec3f tempVec = ( R_WB_.t() * (vicon_payload_pos_ - vicon_quad_pos_) );
-//        //     //ROS_INFO("Vec1: %f %f %f",tempVec(0),tempVec(1),tempVec(2));
-//        //     tempVec = (cable_length_ + distance_tag_CoG) * tempVec / sqrt(tempVec(0)*tempVec(0) + tempVec(1)*tempVec(1) + tempVec(2)*tempVec(2));
-//        //     //ROS_INFO("Vec2: %f %f %f",tempVec(0),tempVec(1),tempVec(2));
-//        //     geometry_msgs::PoseStamped p_vicon;
-//        //     p_vicon.pose.position.x = tempVec(0);
-//        //     p_vicon.pose.position.y = tempVec(1);
-//        //     p_vicon.pose.position.z = tempVec(2);
-//        //     // p_vicon.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, p_vicon.rot(0), p_vicon.rot(1));
-//        //     p_vicon.header = header;
-//        //     p_vicon.header.frame_id = frame_id;
-//        //     odom_vicon_pub.publish(p_vicon);
-//        // }
-//
-//        if (publish_tf) {
-//            tf::Transform transform;
-//            geometry_msgs::Pose p;
-//            p.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, pose.rot(0), pose.rot(1));
-//            transform.setOrigin(tf::Vector3(pose.pos(0), pose.pos(1), pose.pos(2)));
-//            transform.setRotation(tf::createQuaternionFromRPY(0, pose.rot(0), pose.rot(1)));
-//            tf_broadcaster.sendTransform(
-//                    tf::StampedTransform(transform, ros::Time::now(), "base_link", "tag" + std::to_string(i)));
-//        }
-//
-////        if (publish_pixels) {
-////            geometry_msgs::PointStamped p;
-////            p.point.x = circle.x;
-////            p.point.y = circle.y;
-////            p.point.z = 0;
-////            p.header = header;
-////            p.header.frame_id = frame_id;
-////            pixel_pub.publish(p);
-////            //ROS_INFO("printing pixel: %f %f %f",p.x,p.y,p.z);
-////        }
-//    }
-//
-//    if (publish_images) {
-//        cv_bridge::CvImage output_image_bridge = *cv_ptr;
-//        output_image_bridge.image = output_image;
-//        image_pub.publish(output_image_bridge);
-//    }
-//
-//    // if (publish_poses) {
-//    //     pose_array.header = header;
-//    //     pose_array.header.frame_id = frame_id;
-//    //     poses_pub.publish(pose_array);
-//    // }
-//
-//    // if (publish_odom_whycon) {
-//    //     pose_world_array.header = header;
-//    //     pose_world_array.header.frame_id = frame_id;
-//    //     odom_whycon_pub.publish(pose_world_array);
-//    // }
-//
-////    if (transformation_loaded) {
-////        transform_broadcaster->sendTransform(tf::StampedTransform(similarity, header.stamp, world_frame_id, frame_id));
-////
-////        whycon::Projection projection_msg;
-////        projection_msg.header = header;
-////        for (size_t i = 0; i < projection.size(); i++) projection_msg.projection[i] = projection[i];
-////        projection_pub.publish(projection_msg);
-////    }
-//
-//    //ros::Duration diff2(now2 - header.stamp);
-//    ros::Duration diff(ros::Time::now() - time_new_whycon_);
-//    //ROS_INFO("total delay after calc whycon: %d.%d",diff.sec,diff.nsec);
-//    //ROS_INFO("calculation time whycon: %d.%d",diff3.sec,diff3.nsec);
-// }
 
 void whycon::WhyConROS::load_transforms(void) {
   std::string filename = frame_id + "_transforms.yml";
