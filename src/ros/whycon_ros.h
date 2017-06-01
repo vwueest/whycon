@@ -28,7 +28,7 @@ namespace whycon {
 
         void on_image(const sensor_msgs::ImageConstPtr& image_msg, const sensor_msgs::CameraInfoConstPtr& info_msg);
         bool reset(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
-        void calculate_3D_position(const nav_msgs::OdometryConstPtr& msg_quad, const geometry_msgs::PointStampedConstPtr& msg_coord);
+        void calculate_3D_position(const nav_msgs::OdometryConstPtr& msg_quad, const geometry_msgs::Vector3StampedConstPtr &msg_observ_dir);
 
     private:
         int num_meas = 0;
@@ -85,7 +85,7 @@ namespace whycon {
         image_transport::CameraSubscriber cam_sub;
         ros::ServiceServer reset_service;
 
-        ros::Publisher image_pub, odom_whycon_pub, context_pub, pixel_pub; //, poses_pub, odom_vicon_pub, projection_pub;
+        ros::Publisher image_pub, pointload_odom_pub, observ_dir_pub; //, poses_pub, odom_vicon_pub, projection_pub;
 
         image_geometry::PinholeCameraModel camera_model;
 

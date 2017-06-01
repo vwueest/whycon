@@ -31,8 +31,8 @@ whycon::WhyConROS::WhyConROS(ros::NodeHandle &n) : is_tracking(false), should_re
 
   B_T_BC_ = cv::Vec3d(B_T_BC_yaml[0], B_T_BC_yaml[1], B_T_BC_yaml[2]);
   R_BC_ = cv::Matx33d(R_BC_yaml[0], R_BC_yaml[1], R_BC_yaml[2], \
-      R_BC_yaml[3], R_BC_yaml[4], R_BC_yaml[5], \
-      R_BC_yaml[6], R_BC_yaml[7], R_BC_yaml[8]);
+                      R_BC_yaml[3], R_BC_yaml[4], R_BC_yaml[5], \
+                      R_BC_yaml[6], R_BC_yaml[7], R_BC_yaml[8]);
 
   n.getParam("outer_diameter", parameters.outer_diameter);
   n.getParam("inner_diameter", parameters.inner_diameter);
@@ -58,11 +58,8 @@ whycon::WhyConROS::WhyConROS(ros::NodeHandle &n) : is_tracking(false), should_re
                                  boost::bind(&WhyConROS::on_image, this, _1, _2));
 
   image_pub = n.advertise<sensor_msgs::Image>("image_out", 1);
-  odom_whycon_pub = n.advertise<nav_msgs::Odometry>("odom_whycon", 1);
-  // odom_vicon_pub = n.advertise<nav_msgs::Odometry>("odom_vicon", 1);
-  pixel_pub = n.advertise<geometry_msgs::PointStamped>("pixel_coord", 1);
-  context_pub = n.advertise<sensor_msgs::Image>("context", 1);
-  // projection_pub = n.advertise<whycon::Projection>("projection", 1);
+  pointload_odom_pub = n.advertise<payload_msgs::PointloadOdom>("pointload_odom", 1);
+  observ_dir_pub = n.advertise<geometry_msgs::Vector3Stamped>("observ_dir", 1);
 
   reset_service = n.advertiseService("reset", &WhyConROS::reset, this);
 
@@ -99,12 +96,23 @@ void whycon::WhyConROS::on_image(const sensor_msgs::ImageConstPtr &image_msg,
       output_image = cv_ptr->image.clone();
 
     for (int id = 0; id < system->targets; id++) {
-      geometry_msgs::PointStamped p;
-      p.point.x = system->get_circle(id).x;
-      p.point.y = system->get_circle(id).y;
-      p.point.z = id;
+      double point3D[3];
+      double point2D[2] = {system->get_circle(id).y, system->get_circle(id).x};
+      cam2world(point3D, point2D, &model);
+
+      // adapt coord sys of ocam to coord sys of whycon
+      cv::Vec3d direction = {point3D[1],
+                             point3D[0],
+                            -point3D[2]};
+
+      // publish direction
+      geometry_msgs::Vector3Stamped p;
+      p.vector.x = direction(0);
+      p.vector.y = direction(1);
+      p.vector.z = direction(2);
       p.header = image_msg->header;
-      pixel_pub.publish(p);
+      p.header.frame_id = std::to_string(0);
+      observ_dir_pub.publish(p);
 
       // draw each target
       if (publish_images) {
@@ -131,49 +139,42 @@ void whycon::WhyConROS::on_image(const sensor_msgs::ImageConstPtr &image_msg,
   } else if (publish_images)
     image_pub.publish(cv_ptr);
 
-  if (context_pub.getNumSubscribers() != 0) {
-    cv_bridge::CvImage cv_img_context;
-    cv_img_context.encoding = cv_ptr->encoding;
-    cv_img_context.header.stamp = cv_ptr->header.stamp;
-    system->detector.context.debug_buffer(cv_ptr->image, cv_img_context.image);
-    context_pub.publish(cv_img_context.toImageMsg());
-  }
 }
 
 void whycon::WhyConROS::calculate_3D_position(const nav_msgs::OdometryConstPtr& msg_quad,
-                                              const geometry_msgs::PointStampedConstPtr& msg_coord) {
+                                              const geometry_msgs::Vector3StampedConstPtr& msg_observ_dir) {
 
-  bool publish_odom_whycon = (odom_whycon_pub.getNumSubscribers() != 0);
+  bool publish_odom_whycon = (pointload_odom_pub.getNumSubscribers() != 0);
 
   // calculate rotation and angular velocity from vicon data
   cv::Matx33d R_WB =
     {1 - 2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.y -
-     2 * msg_quad->pose.pose.orientation.z * msg_quad->pose.pose.orientation.z,
-     2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.y -
-     2 * msg_quad->pose.pose.orientation.z * msg_quad->pose.pose.orientation.w,
-     2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.z +
-     2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.w,
-     2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.y +
-     2 * msg_quad->pose.pose.orientation.z * msg_quad->pose.pose.orientation.w,
+         2 * msg_quad->pose.pose.orientation.z * msg_quad->pose.pose.orientation.z,
+         2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.y -
+         2 * msg_quad->pose.pose.orientation.z * msg_quad->pose.pose.orientation.w,
+         2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.z +
+         2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.w,
+         2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.y +
+         2 * msg_quad->pose.pose.orientation.z * msg_quad->pose.pose.orientation.w,
      1 - 2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.x -
-     2 * msg_quad->pose.pose.orientation.z * msg_quad->pose.pose.orientation.z,
-     2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.z -
-     2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.w,
-     2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.z -
-     2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.w,
-     2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.z +
-     2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.w,
+         2 * msg_quad->pose.pose.orientation.z * msg_quad->pose.pose.orientation.z,
+         2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.z -
+         2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.w,
+         2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.z -
+         2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.w,
+         2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.z +
+         2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.w,
      1 - 2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.x -
-     2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.y};
+         2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.y};
   cv::Vec3d vicon_quad_angVel =
     {msg_quad->twist.twist.angular.x,
      msg_quad->twist.twist.angular.y,
      msg_quad->twist.twist.angular.z};
 
   // calculate time difference between Vicon and Camera frame
-  double time_diff_vw  ( ros::Duration(msg_coord->header.stamp - msg_quad->header.stamp).toSec() );
-  double time_diff_io  ( ros::Duration(ros::Time::now() - msg_coord->header.stamp).toSec() );
-  double time_diff_last( ros::Duration(msg_coord->header.stamp - time_old_whycon).toSec() );
+  double time_diff_vw  ( ros::Duration(msg_observ_dir->header.stamp - msg_quad->header.stamp).toSec() );
+  double time_diff_io  ( ros::Duration(ros::Time::now() - msg_observ_dir->header.stamp).toSec() );
+  double time_diff_last( ros::Duration(msg_observ_dir->header.stamp - time_old_whycon).toSec() );
 
   num_meas++;
   if (time_diff_vw > 1) {//0.5/150.0) {
@@ -189,15 +190,9 @@ void whycon::WhyConROS::calculate_3D_position(const nav_msgs::OdometryConstPtr& 
   ROS_INFO("duration IO %f", time_diff_io);
   ROS_INFO("since last  %f", time_diff_last);
 
-  double point3D[3];
-  double point2D[2] = {msg_coord->point.y, msg_coord->point.x};
-
-  cam2world(point3D, point2D, &model);
-
-  // adapt coord sys of ocam to coord sys of whycon
-  cv::Vec3d direction = {point3D[1],
-                         point3D[0],
-                        -point3D[2]};
+  cv::Vec3d direction = {msg_observ_dir->vector.x,
+                         msg_observ_dir->vector.y,
+                         msg_observ_dir->vector.z};
 
   // rotate from camera frame to quad frame
   direction = R_BC_ * direction;
@@ -256,16 +251,16 @@ void whycon::WhyConROS::calculate_3D_position(const nav_msgs::OdometryConstPtr& 
 
       // FILTERING
       // first order low-pass filter
-      /*if (filter_a == 0) {
+      /*if (filter_a == 0.0) {
         double filter_h = 0.02;
         double filter_T = 0.1;
         filter_a = filter_h/(filter_T-filter_h);
       }
 
-      whycon_angVel_outputFrame =    filter_a  * whycon_angVel_outputFrame +
-                                  (1-filter_a) * whycon_angVel_outputFrame_old;
-            whycon_angVel_outputFrame_old = whycon_angVel_outputFrame;
-            whycon_angVel_outputFrame_old2 = whycon_angVel_outputFrame_old;*/
+      whycon_angVel_outputFrame = filter_a  * whycon_angVel_outputFrame +
+                               (1-filter_a) * whycon_angVel_outputFrame_old;
+      whycon_angVel_outputFrame_old = whycon_angVel_outputFrame;
+      //whycon_angVel_outputFrame_old2 = whycon_angVel_outputFrame_old;*/
 
       // up to third order butterwroth low-pass filter
       // update input matrix u and output matrix y
@@ -289,40 +284,43 @@ void whycon::WhyConROS::calculate_3D_position(const nav_msgs::OdometryConstPtr& 
 
   whycon_position_outputFrame_old = whycon_position_outputFrame;
   whycon_position_bodyFrame_old = whycon_realtive_position_bodyFrame;
-  time_old_whycon = msg_coord->header.stamp;
+  time_old_whycon = msg_observ_dir->header.stamp;
   whycon_angle_outputFrame_old = whycon_angle_outputFrame;
 
 
 
 
   // publish results
-  nav_msgs::Odometry odom_whycon;
+  payload_msgs::PointloadOdom pointload_odom;
   if (publish_odom_whycon) {
-    if (transform_to_world_frame) {
-      odom_whycon.pose.pose.position.x = whycon_position_outputFrame(0)+msg_quad->pose.pose.position.x;
-      odom_whycon.pose.pose.position.y = whycon_position_outputFrame(1)+msg_quad->pose.pose.position.y;
-      odom_whycon.pose.pose.position.z = whycon_position_outputFrame(2)+msg_quad->pose.pose.position.z;
+    if (transform_to_world_frame) { //output absolute, not relative position
+      pointload_odom.pose_pointload.pose.position.x = whycon_position_outputFrame(0)+msg_quad->pose.pose.position.x;
+      pointload_odom.pose_pointload.pose.position.y = whycon_position_outputFrame(1)+msg_quad->pose.pose.position.y;
+      pointload_odom.pose_pointload.pose.position.z = whycon_position_outputFrame(2)+msg_quad->pose.pose.position.z;
     } else {
-      odom_whycon.pose.pose.position.x = whycon_position_outputFrame(0);
-      odom_whycon.pose.pose.position.y = whycon_position_outputFrame(1);
-      odom_whycon.pose.pose.position.z = whycon_position_outputFrame(2);
+      pointload_odom.pose_pointload.pose.position.x = whycon_position_outputFrame(0);
+      pointload_odom.pose_pointload.pose.position.y = whycon_position_outputFrame(1);
+      pointload_odom.pose_pointload.pose.position.z = whycon_position_outputFrame(2);
     }
 
-    odom_whycon.twist.twist.linear.x = whycon_velocity_outputFrame(0);
-    odom_whycon.twist.twist.linear.y = whycon_velocity_outputFrame(1);
-    odom_whycon.twist.twist.linear.z = whycon_velocity_outputFrame(2);
+    pointload_odom.twist_pointload.twist.linear.x = whycon_velocity_outputFrame(0);
+    pointload_odom.twist_pointload.twist.linear.y = whycon_velocity_outputFrame(1);
+    pointload_odom.twist_pointload.twist.linear.z = whycon_velocity_outputFrame(2);
 
-    odom_whycon.pose.pose.orientation.x = whycon_angle_outputFrame(0);
-    odom_whycon.pose.pose.orientation.y = whycon_angle_outputFrame(1);
-    odom_whycon.pose.pose.orientation.z = whycon_angle_outputFrame(2);
-    odom_whycon.pose.pose.orientation.w = 0;
+    pointload_odom.pose_pointload.pose.orientation.x = whycon_angle_outputFrame(0);
+    pointload_odom.pose_pointload.pose.orientation.y = whycon_angle_outputFrame(1);
+    pointload_odom.pose_pointload.pose.orientation.z = whycon_angle_outputFrame(2);
+    pointload_odom.pose_pointload.pose.orientation.w = 0;
 
-    odom_whycon.twist.twist.angular.x = whycon_angVel_outputFrame(0);
-    odom_whycon.twist.twist.angular.y = whycon_angVel_outputFrame(1);
-    odom_whycon.twist.twist.angular.z = whycon_angVel_outputFrame(2);
+    pointload_odom.twist_pointload.twist.angular.x = whycon_angVel_outputFrame(0);
+    pointload_odom.twist_pointload.twist.angular.y = whycon_angVel_outputFrame(1);
+    pointload_odom.twist_pointload.twist.angular.z = whycon_angVel_outputFrame(2);
 
-    odom_whycon.header = msg_coord->header;
-    odom_whycon_pub.publish(odom_whycon);
+    pointload_odom.pose_quad = msg_quad->pose;
+    pointload_odom.twist_quad = msg_quad->twist;
+
+    pointload_odom.header = msg_observ_dir->header;
+    pointload_odom_pub.publish(pointload_odom);
   }
 }
 

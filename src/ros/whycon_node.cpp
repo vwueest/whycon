@@ -18,10 +18,10 @@ int main(int argc, char **argv) {
         ROS_INFO("Subscribed to %s", vicon_quad_topic.c_str());
 
     message_filters::Subscriber<nav_msgs::Odometry> vicon_quad_sub(n, vicon_quad_topic, 6);
-    message_filters::Subscriber<geometry_msgs::PointStamped> pixel_coord_sub(n, "pixel_coord", 2);
+    message_filters::Subscriber<geometry_msgs::Vector3Stamped> observ_dir_sub(n, "observ_dir", 2);
 
-    typedef message_filters::sync_policies::ApproximateTime<nav_msgs::Odometry, geometry_msgs::PointStamped> MySyncPolicy;
-    message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(10), vicon_quad_sub, pixel_coord_sub);
+    typedef message_filters::sync_policies::ApproximateTime<nav_msgs::Odometry, geometry_msgs::Vector3Stamped> MySyncPolicy;
+    message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(10), vicon_quad_sub, observ_dir_sub);
     sync.registerCallback(boost::bind(&whycon::WhyConROS::calculate_3D_position, &whycon_ros, _1, _2));
 
     ros::spin();
