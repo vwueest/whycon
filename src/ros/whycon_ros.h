@@ -18,6 +18,7 @@
 #include <message_filters/sync_policies/approximate_time.h>
 #include <boost/bind.hpp>
 #include <boost/thread.hpp>
+#include <payload_msgs/PointloadOdom.h>
 #include "ocam_functions.h"
 
 namespace whycon {

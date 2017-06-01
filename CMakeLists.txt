@@ -32,6 +32,7 @@ if(NOT DISABLE_ROS)
     tf
     nodelet
     std_srvs
+    payload_msgs
   )
 
   add_message_files(
@@ -46,7 +47,7 @@ if(NOT DISABLE_ROS)
   catkin_package(
     INCLUDE_DIRS include
     LIBRARIES whycon
-    CATKIN_DEPENDS cv_bridge roscpp sensor_msgs std_msgs message_runtime geometry_msgs
+    CATKIN_DEPENDS cv_bridge roscpp sensor_msgs std_msgs message_runtime geometry_msgs std_msgs
   )
 endif()
 
