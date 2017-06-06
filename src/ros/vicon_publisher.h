@@ -8,6 +8,7 @@
 #include <message_filters/subscriber.h>
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
+#include <payload_msgs/PayloadOdom.h>
 #include <boost/bind.hpp>
 #include <boost/thread.hpp>
 
@@ -20,9 +21,9 @@ namespace whycon {
         double cable_length, distance_tag_CoG;
         bool transform_to_world_frame, publish_observ_dir;
         cv::Matx33d R_WB_;
+        cv::Vec4d vicon_quad_angle_;
         cv::Vec3d vicon_quad_pos_, vicon_quad_vel_, vicon_quad_angVel_, vicon_payload_pos_, vicon_payload_vel_;
         cv::Vec3d relative_pos_outputFrame, relative_vel_outputFrame, relative_ang_vel;
-        nav_msgs::Odometry payload_vicon;
 
         void vicon_publish_msg(const std_msgs::Header_<std::allocator<void>>& header); //vicon_publish_msg(msg.header);
 
