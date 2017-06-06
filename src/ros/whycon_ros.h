@@ -18,7 +18,7 @@
 #include <message_filters/sync_policies/approximate_time.h>
 #include <boost/bind.hpp>
 #include <boost/thread.hpp>
-#include <payload_msgs/PointloadOdom.h>
+#include <payload_msgs/PayloadOdom.h>
 #include "ocam_functions.h"
 
 namespace whycon {
@@ -47,7 +47,6 @@ namespace whycon {
         double cable_length_, distance_tag_CoG;
         bool use_omni_model;
         bool publish_tf;
-        bool publish_vicon;
         bool transform_to_world_frame;
         std::vector<double> R_BC_yaml;
         std::vector<double> B_T_BC_yaml;
@@ -62,16 +61,18 @@ namespace whycon {
         cv::Vec3d whycon_position_bodyFrame_old;
         cv::Vec3d whycon_angle_outputFrame_old;
         cv::Vec3d whycon_angVel_outputFrame_old;
-        cv::Vec3d whycon_angVel_y1;
-        cv::Vec3d whycon_angVel_y2;
-        cv::Vec3d whycon_angVel_y3;
-        cv::Vec3d whycon_angVel_u1;
-        cv::Vec3d whycon_angVel_u2;
-        cv::Vec3d whycon_angVel_u3;
-        cv::Vec3d filter_A = {-1.418983,0.553270};//0.1{-1.142981, 0.412802, 0.0};//0.2{-1.561018, 0.641352, 0.0};
-        cv::Vec4d filter_B = {0.033572, 0.067144, 0.033572, 0.0};//0.1{0.067455, 0.134911, 0.067455};//0.2{0.020083, 0.040167, 0.020083, 0.0};
+//        cv::Vec3d whycon_angVel_y1;
+//        cv::Vec3d whycon_angVel_y2;
+//        cv::Vec3d whycon_angVel_y3;
+//        cv::Vec3d whycon_angVel_u1;
+//        cv::Vec3d whycon_angVel_u2;
+//        cv::Vec3d whycon_angVel_u3;
+        cv::Vec3d filter_A = {-1.142981, 0.412802};//{-1.418983,0.553270};//0.1{-1.142981, 0.412802, 0.0};//0.2{-1.561018, 0.641352, 0.0};
+        cv::Vec4d filter_B = {0.067455, 0.134911, 0.067455};//{0.033572, 0.067144, 0.033572, 0.0};//0.1{0.067455, 0.134911, 0.067455};//0.2{0.020083, 0.040167, 0.020083, 0.0};
         cv::Matx34d whycon_angVel_u;
         cv::Matx34d whycon_angVel_y;
+        cv::Matx34d whycon_velocity_u;
+        cv::Matx34d whycon_velocity_y;
 
         cv::Mat output_image;
         cv::Vec3f coord;
@@ -85,7 +86,7 @@ namespace whycon {
         image_transport::CameraSubscriber cam_sub;
         ros::ServiceServer reset_service;
 
-        ros::Publisher image_pub, pointload_odom_pub, observ_dir_pub; //, poses_pub, odom_vicon_pub, projection_pub;
+        ros::Publisher image_pub, payload_odom_pub, relative_pos_pub; //, poses_pub, odom_vicon_pub, projection_pub;
 
         image_geometry::PinholeCameraModel camera_model;
 
