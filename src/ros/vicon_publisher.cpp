@@ -73,9 +73,6 @@ void whycon::ViconPublisher::vicon_publish_msg(const std_msgs::Header_<std::allo
     cv::Vec3d relative_pos_bodyFrame = R_WB_.t() * (vicon_payload_pos_ - vicon_quad_pos_);
     //relative_pos_bodyFrame = relative_pos_bodyFrame/cv::norm(relative_pos_bodyFrame);
 
-    ROS_INFO("vicon_payload_pos_ %f %f %f",vicon_payload_pos_(0),vicon_payload_pos_(1),vicon_payload_pos_(2));
-    ROS_INFO("vicon_quad_pos_ %f %f %f",vicon_quad_pos_(0),vicon_quad_pos_(1),vicon_quad_pos_(2));
-
     // create message and publish
     geometry_msgs::Vector3Stamped rel_pos_vec;
     rel_pos_vec.header = header;

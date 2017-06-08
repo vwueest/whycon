@@ -9,7 +9,7 @@ int main(int argc, char **argv) {
 
     // use ros sync_policies to sync the two signals
     std::string vicon_topic;
-    n.param("vicon_quad_topic", vicon_topic, std::string("odom"));
+    n.param("vicon_quad_topic", vicon_topic, std::string("odom_quadrotor"));
 
     if (vicon_topic.empty())
         ROS_WARN("Vicon Topic for Quadrotor not defined");

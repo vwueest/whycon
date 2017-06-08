@@ -29,8 +29,8 @@ whycon::WhyConROS::WhyConROS(ros::NodeHandle &n) : is_tracking(false), should_re
   n.param("transform_to_world_frame", transform_to_world_frame, false);
 
   B_T_BC_ = cv::Vec3d(B_T_BC_yaml[0], B_T_BC_yaml[1], B_T_BC_yaml[2]);
-  R_BC_ = cv::Matx33d(R_BC_yaml[0], R_BC_yaml[1], R_BC_yaml[2], \
-                      R_BC_yaml[3], R_BC_yaml[4], R_BC_yaml[5], \
+  R_BC_ = cv::Matx33d(R_BC_yaml[0], R_BC_yaml[1], R_BC_yaml[2],
+                      R_BC_yaml[3], R_BC_yaml[4], R_BC_yaml[5],
                       R_BC_yaml[6], R_BC_yaml[7], R_BC_yaml[8]);
 
   n.getParam("outer_diameter", parameters.outer_diameter);
@@ -57,7 +57,7 @@ whycon::WhyConROS::WhyConROS(ros::NodeHandle &n) : is_tracking(false), should_re
                                  boost::bind(&WhyConROS::on_image, this, _1, _2));
 
   image_pub = n.advertise<sensor_msgs::Image>("image_out", 1);
-  payload_odom_pub = n.advertise<payload_msgs::PayloadOdom>("odom_pointload_whycon", 1);
+  payload_odom_pub = n.advertise<payload_msgs::PayloadOdom>("odom_payload_whycon", 1);
   relative_pos_pub = n.advertise<geometry_msgs::Vector3Stamped>("relative_pos", 1);
 
   reset_service = n.advertiseService("reset", &WhyConROS::reset, this);
@@ -314,8 +314,8 @@ void whycon::WhyConROS::calculate_3D_position(const nav_msgs::OdometryConstPtr& 
 
 
   // publish results
-  payload_msgs::PayloadOdom payload_odom;
   if (publish_odom_whycon) {
+    payload_msgs::PayloadOdom payload_odom;
     if (transform_to_world_frame) { //output absolute, not relative position
       payload_odom.pose_payload.pose.position.x = whycon_relativePosition_outputFrame(0)+msg_quad->pose.pose.position.x;
       payload_odom.pose_payload.pose.position.y = whycon_relativePosition_outputFrame(1)+msg_quad->pose.pose.position.y;
@@ -345,6 +345,8 @@ void whycon::WhyConROS::calculate_3D_position(const nav_msgs::OdometryConstPtr& 
     payload_odom.header = msg_relPos_bodyFrame->header;
     payload_odom_pub.publish(payload_odom);
   }
+
+
 }
 
 bool whycon::WhyConROS::reset(std_srvs::Empty::Request &request, std_srvs::Empty::Response &response) {
