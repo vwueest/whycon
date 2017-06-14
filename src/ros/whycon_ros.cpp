@@ -19,9 +19,9 @@ whycon::WhyConROS::WhyConROS(ros::NodeHandle &n) : is_tracking(false), should_re
   n.param("world_frame", world_frame_id, std::string("world"));
   n.param("max_attempts", max_attempts, 1);
   n.param("max_refine", max_refine, 1);
-  n.param("B_T_BC_", B_T_BC_yaml, {0, 0, 0});
-  n.param("R_BC_", R_BC_yaml, {1, 0, 0, 0, 1, 0, 0, 0, 1});
-  n.param("cable_length_", cable_length_, 1.0);
+  n.param("B_T_BC", B_T_BC_yaml, {0, 0, 0});
+  n.param("R_BC", R_BC_yaml, {1, 0, 0, 0, 1, 0, 0, 0, 1});
+  n.param("cable_length", cable_length_, 0.3);
   n.param("distance_tag_CoG", distance_tag_CoG, 0.0);
   n.param("use_omni_model", use_omni_model, false);
   n.param("calib_file", calib_file, std::string(""));
@@ -108,7 +108,7 @@ void whycon::WhyConROS::on_image(const sensor_msgs::ImageConstPtr &image_msg,
 
       // calculate realtive position of load in body frame
       cv::Vec3d realtive_pos_bodyFrame =  (B_T_BC_ + dist * R_BC_ * direction_camFrame) * //calculate direction in quad frame
-                                          (cable_length_ + distance_tag_CoG) / cable_length_; //adjust length
+                                          cable_length_ / (cable_length_ - distance_tag_CoG); //adjust length
 
       //ROS_INFO("direction %f %f %f",direction_camFrame(0),direction_camFrame(1),direction_camFrame(2));
 
@@ -173,10 +173,11 @@ void whycon::WhyConROS::calculate_3D_position(const nav_msgs::OdometryConstPtr& 
          2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.w,
      1 - 2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.x -
          2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.y};
-  cv::Vec3d vicon_quad_angVel =
+  cv::Vec3d vicon_quad_angVel_bodyFrame =
     {msg_quad->twist.twist.angular.x,
      msg_quad->twist.twist.angular.y,
      msg_quad->twist.twist.angular.z};
+  cv::Vec3d vicon_quad_angVel_worldFrame = R_WB * vicon_quad_angVel_bodyFrame;
   cv::Vec3d vicon_quad_position =
     {msg_quad->pose.pose.position.x,
      msg_quad->pose.pose.position.y,
@@ -233,8 +234,8 @@ void whycon::WhyConROS::calculate_3D_position(const nav_msgs::OdometryConstPtr& 
 //    whycon_velocity_outputFrame = (whycon_position_outputFrame - whycon_position_outputFrame_old) /
 //                                  (time_diff_last);
     whycon_velocity_outputFrame = vicon_quad_velocity +
-                                 (whycon_position_bodyFrame - whycon_position_bodyFrame_old)/time_diff_last +
-                                 (vicon_quad_angVel.cross(whycon_position_bodyFrame));
+                                  (whycon_position_bodyFrame - whycon_position_bodyFrame_old)/time_diff_last +
+                                  vicon_quad_angVel_worldFrame.cross(whycon_position_bodyFrame);
   }
 
   // calculate angular velocity for output
@@ -254,7 +255,7 @@ void whycon::WhyConROS::calculate_3D_position(const nav_msgs::OdometryConstPtr& 
       whycon_angVel_outputFrame = R_WB *
                                   whycon_position_bodyFrame.cross( (whycon_position_bodyFrame-whycon_position_bodyFrame_old)/time_diff_last )/
                                   whycon_position_bodyFrame.dot(whycon_position_bodyFrame) +
-                                  vicon_quad_angVel;
+                                  vicon_quad_angVel_worldFrame;
       // Version 4
       //whycon_angVel_outputFrame = R_WB *
       //                            (R_WB.t() * whycon_angle_outputFrame - R_WBold.t() * whycon_angle_outputFrame_old) /

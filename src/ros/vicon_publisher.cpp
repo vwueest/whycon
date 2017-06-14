@@ -2,7 +2,7 @@
 #include <angles/angles.h>
 
 whycon::ViconPublisher::ViconPublisher(ros::NodeHandle &n) {
-  n.param("cable_length_", cable_length, 1.0);
+  n.param("cable_length", cable_length, 0.6);
   n.param("distance_tag_CoG", distance_tag_CoG, 0.0);
   n.param("transform_to_world_frame", transform_to_world_frame, false);
   n.param("publish_observ_dir", publish_observ_dir, true);
@@ -17,37 +17,40 @@ whycon::ViconPublisher::ViconPublisher(ros::NodeHandle &n) {
 
 void whycon::ViconPublisher::vicon_callback(const nav_msgs::OdometryConstPtr& msg_quad, const nav_msgs::OdometryConstPtr& msg_payload) {
   time_new_vicon_payload_ = msg_payload->header.stamp.sec + msg_payload->header.stamp.nsec * 1e-9;
-  time_new_vicon_quad_ = msg_quad->header.stamp.sec + msg_quad->header.stamp.nsec * 1e-9;
+  time_new_vicon_quad_ =    msg_quad->header.stamp.sec + msg_quad->header.stamp.nsec * 1e-9;
 
-  if (std::abs(time_new_vicon_payload_ - time_new_vicon_quad_) > 0.5/150.0) {
-    //ROS_INFO("too big");
-    return;
-  }
+//  if (std::abs(time_new_vicon_payload_ - time_new_vicon_quad_) > 0.5/150.0) {
+//    //ROS_INFO("too big");
+//    return;
+//  }
 
   //ROS_INFO("timeDiff Vicon: %f", std::abs(time_new_vicon_payload_ - time_new_vicon_quad_));
 
-  vicon_payload_pos_ = {msg_payload->pose.pose.position.x, msg_payload->pose.pose.position.y, msg_payload->pose.pose.position.z};
-  vicon_payload_vel_ = {msg_payload->twist.twist.linear.x, msg_payload->twist.twist.linear.y, msg_payload->twist.twist.linear.z};
+  vicon_payload_pos_ = {msg_payload->pose.pose.position.x,
+                        msg_payload->pose.pose.position.y,
+                        msg_payload->pose.pose.position.z};
+  vicon_payload_vel_ = {msg_payload->twist.twist.linear.x,
+                        msg_payload->twist.twist.linear.y,
+                        msg_payload->twist.twist.linear.z};
 
   R_WB_ = {1 - 2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.y -
-           2 * msg_quad->pose.pose.orientation.z * msg_quad->pose.pose.orientation.z,
-           2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.y -
-           2 * msg_quad->pose.pose.orientation.z * msg_quad->pose.pose.orientation.w,
-           2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.z +
-           2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.w,
-           2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.y +
-           2 * msg_quad->pose.pose.orientation.z * msg_quad->pose.pose.orientation.w,
+               2 * msg_quad->pose.pose.orientation.z * msg_quad->pose.pose.orientation.z,
+               2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.y -
+               2 * msg_quad->pose.pose.orientation.z * msg_quad->pose.pose.orientation.w,
+               2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.z +
+               2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.w,
+               2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.y +
+               2 * msg_quad->pose.pose.orientation.z * msg_quad->pose.pose.orientation.w,
            1 - 2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.x -
-           2 * msg_quad->pose.pose.orientation.z * msg_quad->pose.pose.orientation.z,
-           2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.z -
-           2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.w,
-           2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.z -
-           2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.w,
-           2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.z +
-           2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.w,
+               2 * msg_quad->pose.pose.orientation.z * msg_quad->pose.pose.orientation.z,
+               2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.z -
+               2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.w,
+               2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.z -
+               2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.w,
+               2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.z +
+               2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.w,
            1 - 2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.x -
-           2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.y};
-
+               2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.y};
   vicon_quad_pos_    = {msg_quad->pose.pose.position.x,
                         msg_quad->pose.pose.position.y,
                         msg_quad->pose.pose.position.z};
@@ -89,20 +92,20 @@ void whycon::ViconPublisher::vicon_publish_msg(const std_msgs::Header_<std::allo
     relative_pos_outputFrame = R_WB_.t() * (vicon_payload_pos_ - vicon_quad_pos_);
 
   relative_pos_outputFrame = relative_pos_outputFrame *
-      (cable_length + distance_tag_CoG) / cv::norm(relative_pos_outputFrame);
+      cable_length / cv::norm(relative_pos_outputFrame);
 
   // calculate relative velocity
   if (transform_to_world_frame) // in world frame
     relative_vel_outputFrame = vicon_payload_vel_ - vicon_quad_vel_;
   else // in body frame
     relative_vel_outputFrame = (R_WB_.t() * (vicon_payload_vel_ - vicon_quad_vel_)) + \
-        (R_WB_.t() * (vicon_payload_pos_ - vicon_quad_pos_).cross(vicon_quad_angVel_));
+                               (R_WB_.t() * (vicon_payload_pos_ - vicon_quad_pos_).cross(vicon_quad_angVel_));
 
   // calculate relative angular velocity
   relative_ang_vel = (vicon_payload_pos_ - vicon_quad_pos_).cross(vicon_payload_vel_ - vicon_quad_vel_) /
-      (vicon_payload_pos_ - vicon_quad_pos_).dot(  vicon_payload_pos_ - vicon_quad_pos_);
+                     (vicon_payload_pos_ - vicon_quad_pos_).dot(  vicon_payload_pos_ - vicon_quad_pos_);
   if (!transform_to_world_frame)
-    relative_ang_vel = R_WB_.t() * (relative_ang_vel - vicon_quad_angVel_);
+    relative_ang_vel = R_WB_.t() * relative_ang_vel - vicon_quad_angVel_;
 
   // fill in data
   payload_msgs::PayloadOdom payload_vicon;
