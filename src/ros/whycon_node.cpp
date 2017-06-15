@@ -21,7 +21,7 @@ int main(int argc, char **argv) {
 
     typedef message_filters::sync_policies::ApproximateTime<nav_msgs::Odometry, geometry_msgs::Vector3Stamped> MySyncPolicy;
     message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(10), vicon_quad_sub, observ_dir_sub);
-    sync.registerCallback(boost::bind(&whycon::WhyConROS::calculate_3D_position, &whycon_ros, _1, _2));
+    sync.registerCallback(boost::bind(&whycon::WhyConROS::calculate_odom, &whycon_ros, _1, _2));
 
     ros::spin();
 }

@@ -103,12 +103,15 @@ void whycon::WhyConROS::on_image(const sensor_msgs::ImageConstPtr &image_msg,
 
       // calculate distance camera-load
       double b_term = 2 * B_T_BC_.dot(direction_camFrame);
-      double c_term = B_T_BC_.dot(B_T_BC_) - cable_length_ * cable_length_;
+      double c_term = B_T_BC_.dot(B_T_BC_) - std::pow(cable_length_ - distance_tag_CoG, 2);
       double dist = (-b_term + sqrt(b_term * b_term - 4 * c_term)) / 2;
 
       // calculate realtive position of load in body frame
       cv::Vec3d realtive_pos_bodyFrame =  (B_T_BC_ + dist * R_BC_ * direction_camFrame) * //calculate direction in quad frame
                                           cable_length_ / (cable_length_ - distance_tag_CoG); //adjust length
+      ROS_INFO("cable_length: %f",cable_length_);
+      ROS_INFO("distance_tag_CoG: %f",distance_tag_CoG);
+      ROS_INFO("fac: %f",cable_length_ / (cable_length_ - distance_tag_CoG));
 
       //ROS_INFO("direction %f %f %f",direction_camFrame(0),direction_camFrame(1),direction_camFrame(2));
 
@@ -148,8 +151,8 @@ void whycon::WhyConROS::on_image(const sensor_msgs::ImageConstPtr &image_msg,
 
 }
 
-void whycon::WhyConROS::calculate_3D_position(const nav_msgs::OdometryConstPtr& msg_quad,
-                                              const geometry_msgs::Vector3StampedConstPtr& msg_relPos_bodyFrame) {
+void whycon::WhyConROS::calculate_odom(const nav_msgs::OdometryConstPtr& msg_quad,
+                                       const geometry_msgs::Vector3StampedConstPtr& msg_relPos_bodyFrame) {
 
   bool publish_odom_whycon = (payload_odom_pub.getNumSubscribers() != 0);
 
@@ -233,9 +236,9 @@ void whycon::WhyConROS::calculate_3D_position(const nav_msgs::OdometryConstPtr& 
   if (!time_old_whycon.isZero()) {
 //    whycon_velocity_outputFrame = (whycon_position_outputFrame - whycon_position_outputFrame_old) /
 //                                  (time_diff_last);
-    whycon_velocity_outputFrame = vicon_quad_velocity +
-                                  (whycon_position_bodyFrame - whycon_position_bodyFrame_old)/time_diff_last +
-                                  vicon_quad_angVel_worldFrame.cross(whycon_position_bodyFrame);
+    whycon_velocity_outputFrame = vicon_quad_velocity -
+                                  R_WB * (whycon_position_bodyFrame - whycon_position_bodyFrame_old)/time_diff_last -
+                                  vicon_quad_angVel_worldFrame.cross(R_WB * whycon_position_bodyFrame);
   }
 
   // calculate angular velocity for output
@@ -318,9 +321,9 @@ void whycon::WhyConROS::calculate_3D_position(const nav_msgs::OdometryConstPtr& 
   if (publish_odom_whycon) {
     payload_msgs::PayloadOdom payload_odom;
     if (transform_to_world_frame) { //output absolute, not relative position
-      payload_odom.pose_payload.pose.position.x = whycon_relativePosition_outputFrame(0)+msg_quad->pose.pose.position.x;
-      payload_odom.pose_payload.pose.position.y = whycon_relativePosition_outputFrame(1)+msg_quad->pose.pose.position.y;
-      payload_odom.pose_payload.pose.position.z = whycon_relativePosition_outputFrame(2)+msg_quad->pose.pose.position.z;
+      payload_odom.pose_payload.pose.position.x = whycon_position_outputFrame(0);
+      payload_odom.pose_payload.pose.position.y = whycon_position_outputFrame(1);
+      payload_odom.pose_payload.pose.position.z = whycon_position_outputFrame(2);
     } else {
       payload_odom.pose_payload.pose.position.x = whycon_relativePosition_outputFrame(0);
       payload_odom.pose_payload.pose.position.y = whycon_relativePosition_outputFrame(1);
