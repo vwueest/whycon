@@ -28,7 +28,7 @@ namespace whycon {
 
         void on_image(const sensor_msgs::ImageConstPtr& image_msg, const sensor_msgs::CameraInfoConstPtr& info_msg);
         bool reset(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
-        void calculate_odom(const nav_msgs::OdometryConstPtr& msg_quad, const geometry_msgs::Vector3StampedConstPtr &msg_observ_dir);
+        void calculate_odom(const nav_msgs::OdometryConstPtr& msg_quad, const geometry_msgs::Vector3StampedConstPtr &msg_relPos_bodyFrame);
 
     private:
         int num_meas = 0;
@@ -44,7 +44,7 @@ namespace whycon {
         std::string world_frame_id, frame_id;
         int targets;
         //double xscale, yscale
-        double cable_length_, distance_tag_CoG;
+        double cable_length_, distance_tag_CoG_;
         bool use_omni_model;
         bool publish_tf;
         bool transform_to_world_frame;
@@ -67,8 +67,8 @@ namespace whycon {
 //        cv::Vec3d whycon_angVel_u1;
 //        cv::Vec3d whycon_angVel_u2;
 //        cv::Vec3d whycon_angVel_u3;
-        cv::Vec3d filter_A = {-1.142981, 0.412802};//{-1.418983,0.553270};//0.1{-1.142981, 0.412802, 0.0};//0.2{-1.561018, 0.641352, 0.0};
-        cv::Vec4d filter_B = {0.067455, 0.134911, 0.067455};//{0.033572, 0.067144, 0.033572, 0.0};//0.1{0.067455, 0.134911, 0.067455};//0.2{0.020083, 0.040167, 0.020083, 0.0};
+        cv::Vec3d filter_A = {-1.418983,0.553270};//{-1.142981, 0.412802};//{-1.418983,0.553270};//0.1{-1.142981, 0.412802, 0.0};//0.2{-1.561018, 0.641352, 0.0};
+        cv::Vec4d filter_B = {0.033572, 0.067144, 0.033572, 0.0};//{0.067455, 0.134911, 0.067455};//{0.033572, 0.067144, 0.033572, 0.0};//0.1{0.067455, 0.134911, 0.067455};//0.2{0.020083, 0.040167, 0.020083, 0.0};
         cv::Matx34d whycon_angVel_u;
         cv::Matx34d whycon_angVel_y;
         cv::Matx34d whycon_velocity_u;

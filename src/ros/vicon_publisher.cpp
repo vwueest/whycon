@@ -2,8 +2,8 @@
 #include <angles/angles.h>
 
 whycon::ViconPublisher::ViconPublisher(ros::NodeHandle &n) {
-  n.param("cable_length", cable_length, 0.6);
-  n.param("distance_tag_CoG", distance_tag_CoG, 0.0);
+  n.param("cable_length", cable_length_, 0.3);
+  n.param("distance_tag_CoG", distance_tag_CoG_, 0.0);
   n.param("transform_to_world_frame", transform_to_world_frame, false);
   n.param("publish_observ_dir", publish_observ_dir, true);
 
@@ -12,12 +12,12 @@ whycon::ViconPublisher::ViconPublisher(ros::NodeHandle &n) {
   n.param("vicon_payload_topic", vicon_payload_topic, std::string(""));
 
   odom_vicon_pub = n.advertise<payload_msgs::PayloadOdom>("odom_pointload_vicon", 1);
-  relative_pos_pub  = n.advertise<geometry_msgs::Vector3Stamped>("relative_pos", 1);
+  relative_pos_pub = n.advertise<geometry_msgs::Vector3Stamped>("relative_pos", 1);
 }
 
 void whycon::ViconPublisher::vicon_callback(const nav_msgs::OdometryConstPtr& msg_quad, const nav_msgs::OdometryConstPtr& msg_payload) {
   time_new_vicon_payload_ = msg_payload->header.stamp.sec + msg_payload->header.stamp.nsec * 1e-9;
-  time_new_vicon_quad_ =    msg_quad->header.stamp.sec + msg_quad->header.stamp.nsec * 1e-9;
+  time_new_vicon_quad_ = msg_quad->header.stamp.sec + msg_quad->header.stamp.nsec * 1e-9;
 
 //  if (std::abs(time_new_vicon_payload_ - time_new_vicon_quad_) > 0.5/150.0) {
 //    //ROS_INFO("too big");
@@ -51,6 +51,7 @@ void whycon::ViconPublisher::vicon_callback(const nav_msgs::OdometryConstPtr& ms
                2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.w,
            1 - 2 * msg_quad->pose.pose.orientation.x * msg_quad->pose.pose.orientation.x -
                2 * msg_quad->pose.pose.orientation.y * msg_quad->pose.pose.orientation.y};
+
   vicon_quad_pos_    = {msg_quad->pose.pose.position.x,
                         msg_quad->pose.pose.position.y,
                         msg_quad->pose.pose.position.z};
@@ -85,14 +86,14 @@ void whycon::ViconPublisher::vicon_publish_msg(const std_msgs::Header_<std::allo
     rel_pos_vec.header.frame_id = std::string("0");
     relative_pos_pub.publish(rel_pos_vec);
   }
-
+  //ROS_INFO("publish");
   if (transform_to_world_frame) // in world frame
     relative_pos_outputFrame = vicon_payload_pos_ - vicon_quad_pos_;
   else // in body frame
     relative_pos_outputFrame = R_WB_.t() * (vicon_payload_pos_ - vicon_quad_pos_);
 
   relative_pos_outputFrame = relative_pos_outputFrame *
-      cable_length / cv::norm(relative_pos_outputFrame);
+                             (cable_length_ + distance_tag_CoG_) / cv::norm(relative_pos_outputFrame);
 
   // calculate relative velocity
   if (transform_to_world_frame) // in world frame
@@ -105,7 +106,7 @@ void whycon::ViconPublisher::vicon_publish_msg(const std_msgs::Header_<std::allo
   relative_ang_vel = (vicon_payload_pos_ - vicon_quad_pos_).cross(vicon_payload_vel_ - vicon_quad_vel_) /
                      (vicon_payload_pos_ - vicon_quad_pos_).dot(  vicon_payload_pos_ - vicon_quad_pos_);
   if (!transform_to_world_frame)
-    relative_ang_vel = R_WB_.t() * relative_ang_vel - vicon_quad_angVel_;
+    relative_ang_vel = R_WB_.t() * (relative_ang_vel - vicon_quad_angVel_);
 
   // fill in data
   payload_msgs::PayloadOdom payload_vicon;
@@ -119,9 +120,9 @@ void whycon::ViconPublisher::vicon_publish_msg(const std_msgs::Header_<std::allo
   payload_vicon.pose_payload.pose.orientation.z = 0;
   payload_vicon.pose_payload.pose.orientation.w = 0;
 
-  payload_vicon.twist_payload.twist.linear.x = vicon_payload_pos_(0);
-  payload_vicon.twist_payload.twist.linear.y = vicon_payload_pos_(1);
-  payload_vicon.twist_payload.twist.linear.z = vicon_payload_pos_(2);
+  payload_vicon.twist_payload.twist.linear.x = vicon_payload_vel_(0);
+  payload_vicon.twist_payload.twist.linear.y = vicon_payload_vel_(1);
+  payload_vicon.twist_payload.twist.linear.z = vicon_payload_vel_(2);
 
   payload_vicon.twist_payload.twist.angular.x = relative_ang_vel(0);
   payload_vicon.twist_payload.twist.angular.y = relative_ang_vel(1);

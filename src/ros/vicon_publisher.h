@@ -3,12 +3,12 @@
 
 #include <ros/ros.h>
 #include <geometry_msgs/Vector3Stamped.h>
+#include <payload_msgs/PayloadOdom.h>
 #include <nav_msgs/Odometry.h>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <message_filters/subscriber.h>
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
-#include <payload_msgs/PayloadOdom.h>
 #include <boost/bind.hpp>
 #include <boost/thread.hpp>
 
@@ -18,7 +18,7 @@ namespace whycon {
     class ViconPublisher {
     private:
         double time_new_vicon_payload_, time_new_vicon_quad_;
-        double cable_length, distance_tag_CoG;
+        double cable_length_, distance_tag_CoG_;
         bool transform_to_world_frame, publish_observ_dir;
         cv::Matx33d R_WB_;
         cv::Vec4d vicon_quad_angle_;
