@@ -11,7 +11,7 @@ whycon::ViconPublisher::ViconPublisher(ros::NodeHandle &n) {
   n.param("vicon_quad_topic", vicon_quad_topic, std::string(""));
   n.param("vicon_payload_topic", vicon_payload_topic, std::string(""));
 
-  odom_vicon_pub = n.advertise<payload_msgs::PayloadOdom>("odom_pointload_vicon", 1);
+  odom_vicon_pub = n.advertise<payload_msgs::PayloadOdom>("odom_payload_vicon", 1);
   relative_pos_pub = n.advertise<geometry_msgs::Vector3Stamped>("relative_pos", 1);
 }
 

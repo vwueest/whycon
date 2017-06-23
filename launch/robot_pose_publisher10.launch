@@ -25,6 +25,7 @@
     <arg name="expose_us" value="$(arg expose_us)"/>
     <arg name="gain_db" default="$(arg gain_db)"/>
     <arg name="camera" value="camera"/>
+    <arg name="boost" value="true"/>
   </include-->
 
   <node name="whycon" type="whycon" pkg="whycon" output="screen">
