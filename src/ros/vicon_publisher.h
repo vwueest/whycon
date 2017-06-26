@@ -19,11 +19,14 @@ namespace whycon {
     private:
         double time_new_vicon_payload_, time_new_vicon_quad_;
         double cable_length_, distance_tag_CoG_;
-        bool transform_to_world_frame, publish_observ_dir;
+        bool transform_to_world_frame, publish_observ_dir, filter_velocities;
         cv::Matx33d R_WB_;
         cv::Vec4d vicon_quad_angle_;
         cv::Vec3d vicon_quad_pos_, vicon_quad_vel_, vicon_quad_angVel_, vicon_payload_pos_, vicon_payload_vel_;
         cv::Vec3d relative_pos_outputFrame, relative_vel_outputFrame, relative_ang_vel;
+
+        cv::Vec3d relative_ang_vel_old_, vicon_payload_vel_old_;
+        double filter_a = 0.0;
 
         void vicon_publish_msg(const std_msgs::Header_<std::allocator<void>>& header); //vicon_publish_msg(msg.header);
 

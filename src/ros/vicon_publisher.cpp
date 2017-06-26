@@ -6,6 +6,7 @@ whycon::ViconPublisher::ViconPublisher(ros::NodeHandle &n) {
   n.param("distance_tag_CoG", distance_tag_CoG_, 0.0);
   n.param("transform_to_world_frame", transform_to_world_frame, false);
   n.param("publish_observ_dir", publish_observ_dir, true);
+  n.param("filter_velocities", filter_velocities, false);
 
   std::string vicon_quad_topic, vicon_payload_topic;
   n.param("vicon_quad_topic", vicon_quad_topic, std::string(""));
@@ -107,6 +108,22 @@ void whycon::ViconPublisher::vicon_publish_msg(const std_msgs::Header_<std::allo
                      (vicon_payload_pos_ - vicon_quad_pos_).dot(  vicon_payload_pos_ - vicon_quad_pos_);
   if (!transform_to_world_frame)
     relative_ang_vel = R_WB_.t() * (relative_ang_vel - vicon_quad_angVel_);
+
+  if (filter_velocities) {
+    if (filter_a == 0.0) {
+      double filter_h = 0.02;
+      double filter_T = 0.1;
+      filter_a = filter_h/(filter_T-filter_h);
+    }
+
+    relative_ang_vel = filter_a  * relative_ang_vel +
+                    (1-filter_a) * relative_ang_vel_old_;
+    relative_ang_vel_old_ = relative_ang_vel;
+
+    vicon_payload_vel_ = filter_a  * vicon_payload_vel_ +
+                      (1-filter_a) * vicon_payload_vel_old_;
+    vicon_payload_vel_old_ = vicon_payload_vel_;
+  }
 
   // fill in data
   payload_msgs::PayloadOdom payload_vicon;
