@@ -128,22 +128,22 @@ void whycon::ViconPublisher::vicon_publish_msg(const std_msgs::Header_<std::allo
   // fill in data
   payload_msgs::PayloadOdom payload_vicon;
 
-  payload_vicon.pose_payload.pose.position.x = vicon_quad_pos_(0);//relative_pos_outputFrame(0)+vicon_quad_pos_(0);
-  payload_vicon.pose_payload.pose.position.y = vicon_quad_pos_(1);//relative_pos_outputFrame(1)+vicon_quad_pos_(1);
-  payload_vicon.pose_payload.pose.position.z = vicon_quad_pos_(2)-cable_length_-distance_tag_CoG_;//relative_pos_outputFrame(2)+vicon_quad_pos_(2);
+  payload_vicon.pose_payload.pose.position.x = relative_pos_outputFrame(0)+vicon_quad_pos_(0); //vicon_quad_pos_(0); //relative_pos_outputFrame(0)+vicon_quad_pos_(0);
+  payload_vicon.pose_payload.pose.position.y = relative_pos_outputFrame(1)+vicon_quad_pos_(1); //vicon_quad_pos_(1); //relative_pos_outputFrame(1)+vicon_quad_pos_(1);
+  payload_vicon.pose_payload.pose.position.z = relative_pos_outputFrame(2)+vicon_quad_pos_(2); //vicon_quad_pos_(2)-cable_length_-distance_tag_CoG_; //relative_pos_outputFrame(2)+vicon_quad_pos_(2);
 
-  payload_vicon.pose_payload.pose.orientation.x = 0.0;// atan2(relative_pos_outputFrame(1), -relative_pos_outputFrame(2));
-  payload_vicon.pose_payload.pose.orientation.y = 0.0;//-atan2(relative_pos_outputFrame(0), -relative_pos_outputFrame(2));
-  payload_vicon.pose_payload.pose.orientation.z = 0.0;
-  payload_vicon.pose_payload.pose.orientation.w = 0.0;
+  payload_vicon.pose_payload.pose.orientation.x =  atan2(relative_pos_outputFrame(1), -relative_pos_outputFrame(2)); //0.0; // atan2(relative_pos_outputFrame(1), -relative_pos_outputFrame(2));
+  payload_vicon.pose_payload.pose.orientation.y = -atan2(relative_pos_outputFrame(0), -relative_pos_outputFrame(2)); //0.0; //-atan2(relative_pos_outputFrame(0), -relative_pos_outputFrame(2));
+  payload_vicon.pose_payload.pose.orientation.z = 1e-4;
+  payload_vicon.pose_payload.pose.orientation.w = 1e-4;
 
-  payload_vicon.twist_payload.twist.linear.x = vicon_quad_vel_(0);//vicon_payload_vel_(0);
-  payload_vicon.twist_payload.twist.linear.y = vicon_quad_vel_(1);//vicon_payload_vel_(1);
-  payload_vicon.twist_payload.twist.linear.z = vicon_quad_vel_(2);//vicon_payload_vel_(2);
+  payload_vicon.twist_payload.twist.linear.x = vicon_payload_vel_(0); //vicon_quad_vel_(0); //vicon_payload_vel_(0);
+  payload_vicon.twist_payload.twist.linear.y = vicon_payload_vel_(1); //vicon_quad_vel_(1); //vicon_payload_vel_(1);
+  payload_vicon.twist_payload.twist.linear.z = vicon_payload_vel_(2); //vicon_quad_vel_(2); //vicon_payload_vel_(2);
 
-  payload_vicon.twist_payload.twist.angular.x = 0.0;//relative_ang_vel(0);
-  payload_vicon.twist_payload.twist.angular.y = 0.0;//relative_ang_vel(1);
-  payload_vicon.twist_payload.twist.angular.z = 0.0;
+  payload_vicon.twist_payload.twist.angular.x = relative_ang_vel(0); //0.0; //relative_ang_vel(0);
+  payload_vicon.twist_payload.twist.angular.y = relative_ang_vel(1); //0.0; //relative_ang_vel(1);
+  payload_vicon.twist_payload.twist.angular.z = 1e-4;
 
   payload_vicon.pose_quad.pose.position.x = vicon_quad_pos_(0);
   payload_vicon.pose_quad.pose.position.y = vicon_quad_pos_(1);
