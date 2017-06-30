@@ -27,6 +27,7 @@ whycon::WhyConROS::WhyConROS(ros::NodeHandle &n) : is_tracking(false), should_re
   n.param("calib_file", calib_file, std::string(""));
   n.param("publish_tf", publish_tf, false);
   n.param("transform_to_world_frame", transform_to_world_frame, false);
+  n.param("filter_velocities", filter_velocities, false);
 
   B_T_BC_ = cv::Vec3d(B_T_BC_yaml[0], B_T_BC_yaml[1], B_T_BC_yaml[2]);
   R_BC_ = cv::Matx33d(R_BC_yaml[0], R_BC_yaml[1], R_BC_yaml[2], \
@@ -225,7 +226,7 @@ void whycon::WhyConROS::publish_odom(const nav_msgs::OdometryConstPtr& msg_quad,
   // calculate angle for output
   cv::Vec3d whycon_angle_outputFrame = { atan2(whycon_relativePosition_outputFrame(1), -whycon_relativePosition_outputFrame(2)),
                                         -atan2(whycon_relativePosition_outputFrame(0), -whycon_relativePosition_outputFrame(2)),
-                                         0};
+                                         0.0};
 
   // calculate velocity for output
   cv::Vec3d whycon_velocity_bodyFrame;
@@ -337,18 +338,30 @@ void whycon::WhyConROS::publish_odom(const nav_msgs::OdometryConstPtr& msg_quad,
       odom.pose_payload.pose.position.z = whycon_relativePosition_outputFrame(2);
     }
 
-    odom.twist_payload.twist.linear.x = whycon_velocity_outputFrame_filtered(0);
-    odom.twist_payload.twist.linear.y = whycon_velocity_outputFrame_filtered(1);
-    odom.twist_payload.twist.linear.z = whycon_velocity_outputFrame_filtered(2);
+    if (filter_velocities) {
+      odom.twist_payload.twist.linear.x = whycon_velocity_outputFrame_filtered(0);
+      odom.twist_payload.twist.linear.y = whycon_velocity_outputFrame_filtered(1);
+      odom.twist_payload.twist.linear.z = whycon_velocity_outputFrame_filtered(2);
+    } else {
+      odom.twist_payload.twist.linear.x = whycon_velocity_outputFrame(0);
+      odom.twist_payload.twist.linear.y = whycon_velocity_outputFrame(1);
+      odom.twist_payload.twist.linear.z = whycon_velocity_outputFrame(2);
+    }
 
     odom.pose_payload.pose.orientation.x = whycon_angle_outputFrame(0);
     odom.pose_payload.pose.orientation.y = whycon_angle_outputFrame(1);
     odom.pose_payload.pose.orientation.z = whycon_angle_outputFrame(2);
-    odom.pose_payload.pose.orientation.w = 1;
+    odom.pose_payload.pose.orientation.w = 1-std::pow(whycon_angle_outputFrame(0),2)-std::pow(whycon_angle_outputFrame(1),2)-std::pow(whycon_angle_outputFrame(2),2);
 
-    odom.twist_payload.twist.angular.x = whycon_angVel_outputFrame_filtered(0);
-    odom.twist_payload.twist.angular.y = whycon_angVel_outputFrame_filtered(1);
-    odom.twist_payload.twist.angular.z = whycon_angVel_outputFrame_filtered(2);
+    if (filter_velocities) {
+      odom.twist_payload.twist.angular.x = whycon_angVel_outputFrame_filtered(0);
+      odom.twist_payload.twist.angular.y = whycon_angVel_outputFrame_filtered(1);
+      odom.twist_payload.twist.angular.z = whycon_angVel_outputFrame_filtered(2);
+    } else {
+      odom.twist_payload.twist.angular.x = whycon_angVel_outputFrame(0);
+      odom.twist_payload.twist.angular.y = whycon_angVel_outputFrame(1);
+      odom.twist_payload.twist.angular.z = whycon_angVel_outputFrame(2);
+    }
 
     odom.pose_quad = msg_quad->pose;
     odom.twist_quad = msg_quad->twist;
@@ -370,18 +383,30 @@ void whycon::WhyConROS::publish_odom(const nav_msgs::OdometryConstPtr& msg_quad,
       odom.pose.pose.position.z = whycon_relativePosition_outputFrame(2);
     }
 
-    odom.twist.twist.linear.x = whycon_velocity_outputFrame_filtered(0);
-    odom.twist.twist.linear.y = whycon_velocity_outputFrame_filtered(1);
-    odom.twist.twist.linear.z = whycon_velocity_outputFrame_filtered(2);
+    if (filter_velocities) {
+      odom.twist.twist.linear.x = whycon_velocity_outputFrame_filtered(0);
+      odom.twist.twist.linear.y = whycon_velocity_outputFrame_filtered(1);
+      odom.twist.twist.linear.z = whycon_velocity_outputFrame_filtered(2);
+    } else {
+      odom.twist.twist.linear.x = whycon_velocity_outputFrame(0);
+      odom.twist.twist.linear.y = whycon_velocity_outputFrame(1);
+      odom.twist.twist.linear.z = whycon_velocity_outputFrame(2);
+    }
 
     odom.pose.pose.orientation.x = whycon_angle_outputFrame(0);
     odom.pose.pose.orientation.y = whycon_angle_outputFrame(1);
     odom.pose.pose.orientation.z = whycon_angle_outputFrame(2);
-    odom.pose.pose.orientation.w = 1;
+    odom.pose.pose.orientation.w = 1-std::pow(whycon_angle_outputFrame(0),2)-std::pow(whycon_angle_outputFrame(1),2)-std::pow(whycon_angle_outputFrame(2),2);
 
-    odom.twist.twist.angular.x = whycon_angVel_outputFrame_filtered(0);
-    odom.twist.twist.angular.y = whycon_angVel_outputFrame_filtered(1);
-    odom.twist.twist.angular.z = whycon_angVel_outputFrame_filtered(2);
+    if (filter_velocities) {
+      odom.twist.twist.angular.x = whycon_angVel_outputFrame_filtered(0);
+      odom.twist.twist.angular.y = whycon_angVel_outputFrame_filtered(1);
+      odom.twist.twist.angular.z = whycon_angVel_outputFrame_filtered(2);
+    } else {
+      odom.twist.twist.angular.x = whycon_angVel_outputFrame(0);
+      odom.twist.twist.angular.y = whycon_angVel_outputFrame(1);
+      odom.twist.twist.angular.z = whycon_angVel_outputFrame(2);
+    }
 
     odom.header = msg_relPos_bodyFrame->header;
     odom_payload_pub.publish(odom);

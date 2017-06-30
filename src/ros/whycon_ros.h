@@ -48,6 +48,7 @@ namespace whycon {
         bool use_omni_model;
         bool publish_tf;
         bool transform_to_world_frame;
+        bool filter_velocities;
         std::vector<double> R_BC_yaml;
         std::vector<double> B_T_BC_yaml;
         std::string calib_file;
