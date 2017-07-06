@@ -351,7 +351,7 @@ void whycon::WhyConROS::publish_odom(const nav_msgs::OdometryConstPtr& msg_quad,
     odom.pose_payload.pose.orientation.x = whycon_angle_outputFrame(0);
     odom.pose_payload.pose.orientation.y = whycon_angle_outputFrame(1);
     odom.pose_payload.pose.orientation.z = whycon_angle_outputFrame(2);
-    odom.pose_payload.pose.orientation.w = 1-std::pow(whycon_angle_outputFrame(0),2)-std::pow(whycon_angle_outputFrame(1),2)-std::pow(whycon_angle_outputFrame(2),2);
+    odom.pose_payload.pose.orientation.w = std::sqrt(1-std::pow(whycon_angle_outputFrame(0),2)-std::pow(whycon_angle_outputFrame(1),2)-std::pow(whycon_angle_outputFrame(2),2));
 
     if (filter_velocities) {
       odom.twist_payload.twist.angular.x = whycon_angVel_outputFrame_filtered(0);
@@ -396,7 +396,7 @@ void whycon::WhyConROS::publish_odom(const nav_msgs::OdometryConstPtr& msg_quad,
     odom.pose.pose.orientation.x = whycon_angle_outputFrame(0);
     odom.pose.pose.orientation.y = whycon_angle_outputFrame(1);
     odom.pose.pose.orientation.z = whycon_angle_outputFrame(2);
-    odom.pose.pose.orientation.w = 1-std::pow(whycon_angle_outputFrame(0),2)-std::pow(whycon_angle_outputFrame(1),2)-std::pow(whycon_angle_outputFrame(2),2);
+    odom.pose.pose.orientation.w = std::sqrt(1-std::pow(whycon_angle_outputFrame(0),2)-std::pow(whycon_angle_outputFrame(1),2)-std::pow(whycon_angle_outputFrame(2),2));
 
     if (filter_velocities) {
       odom.twist.twist.angular.x = whycon_angVel_outputFrame_filtered(0);

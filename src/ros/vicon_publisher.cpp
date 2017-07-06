@@ -135,7 +135,7 @@ void whycon::ViconPublisher::vicon_publish_msg(const std_msgs::Header_<std::allo
   payload_vicon.pose_payload.pose.orientation.x =  atan2(relative_pos_outputFrame(1), -relative_pos_outputFrame(2)); //0.0; // atan2(relative_pos_outputFrame(1), -relative_pos_outputFrame(2));
   payload_vicon.pose_payload.pose.orientation.y = -atan2(relative_pos_outputFrame(0), -relative_pos_outputFrame(2)); //0.0; //-atan2(relative_pos_outputFrame(0), -relative_pos_outputFrame(2));
   payload_vicon.pose_payload.pose.orientation.z = 0.0;
-  payload_vicon.pose_payload.pose.orientation.w = 1.0-std::pow(payload_vicon.pose_payload.pose.orientation.x,2)-std::pow(payload_vicon.pose_payload.pose.orientation.y,2);
+  payload_vicon.pose_payload.pose.orientation.w = std::sqrt(1.0-std::pow(payload_vicon.pose_payload.pose.orientation.x,2)-std::pow(payload_vicon.pose_payload.pose.orientation.y,2));
 
   payload_vicon.twist_payload.twist.linear.x = vicon_payload_vel_(0); //vicon_quad_vel_(0); //vicon_payload_vel_(0);
   payload_vicon.twist_payload.twist.linear.y = vicon_payload_vel_(1); //vicon_quad_vel_(1); //vicon_payload_vel_(1);
