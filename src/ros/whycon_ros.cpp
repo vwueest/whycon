@@ -122,6 +122,7 @@ void whycon::WhyConROS::on_image(const sensor_msgs::ImageConstPtr &image_msg,
       p.header = image_msg->header;
       p.header.frame_id = std::to_string(0);
       relative_pos_pub.publish(p);
+      ROS_INFO("tdiff: %f",(ros::Time::now()-image_msg->header.stamp).toSec());
 
       // draw each target
       if (publish_images) {
@@ -151,7 +152,7 @@ void whycon::WhyConROS::on_image(const sensor_msgs::ImageConstPtr &image_msg,
 }
 
 void whycon::WhyConROS::publish_odom(const nav_msgs::OdometryConstPtr& msg_quad,
-                                       const geometry_msgs::Vector3StampedConstPtr& msg_relPos_bodyFrame) {
+                                     const geometry_msgs::Vector3StampedConstPtr& msg_relPos_bodyFrame) {
 
   bool publish_odom_whycon = (odom_pub.getNumSubscribers() != 0);
   bool publish_odom_payload_whycon = (odom_payload_pub.getNumSubscribers() != 0);
@@ -366,7 +367,7 @@ void whycon::WhyConROS::publish_odom(const nav_msgs::OdometryConstPtr& msg_quad,
     odom.pose_quad = msg_quad->pose;
     odom.twist_quad = msg_quad->twist;
 
-    odom.header = msg_relPos_bodyFrame->header;
+    odom.header = msg_quad->header;
     odom_pub.publish(odom);
   }
 
@@ -408,7 +409,7 @@ void whycon::WhyConROS::publish_odom(const nav_msgs::OdometryConstPtr& msg_quad,
       odom.twist.twist.angular.z = whycon_angVel_outputFrame(2);
     }
 
-    odom.header = msg_relPos_bodyFrame->header;
+    odom.header = msg_quad->header;
     odom_payload_pub.publish(odom);
   }
 }

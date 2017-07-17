@@ -143,7 +143,7 @@ void whycon::ViconPublisher::vicon_publish_msg(const std_msgs::Header_<std::allo
 
   payload_vicon.twist_payload.twist.angular.x = relative_ang_vel(0); //0.0; //relative_ang_vel(0);
   payload_vicon.twist_payload.twist.angular.y = relative_ang_vel(1); //0.0; //relative_ang_vel(1);
-  payload_vicon.twist_payload.twist.angular.z = 0.0;
+  payload_vicon.twist_payload.twist.angular.z = relative_ang_vel(2);
 
   payload_vicon.pose_quad.pose.position.x = vicon_quad_pos_(0);
   payload_vicon.pose_quad.pose.position.y = vicon_quad_pos_(1);
