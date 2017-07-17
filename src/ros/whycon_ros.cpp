@@ -122,7 +122,6 @@ void whycon::WhyConROS::on_image(const sensor_msgs::ImageConstPtr &image_msg,
       p.header = image_msg->header;
       p.header.frame_id = std::to_string(0);
       relative_pos_pub.publish(p);
-      ROS_INFO("tdiff: %f",(ros::Time::now()-image_msg->header.stamp).toSec());
 
       // draw each target
       if (publish_images) {
