@@ -76,6 +76,7 @@ void whycon::ViconPublisher::vicon_publish_msg(const std_msgs::Header_<std::allo
   if (publish_observ_dir) {
     // calculate body frame observation direction and normalize
     cv::Vec3d relative_pos_bodyFrame = R_WB_.t() * (vicon_payload_pos_ - vicon_quad_pos_);
+    relative_pos_bodyFrame = cable_length_/cv::norm(relative_pos_bodyFrame);
     //relative_pos_bodyFrame = relative_pos_bodyFrame/cv::norm(relative_pos_bodyFrame);
 
     // create message and publish
