@@ -8,10 +8,6 @@ whycon::ViconPublisher::ViconPublisher(ros::NodeHandle &n) {
   n.param("publish_observ_dir", publish_observ_dir, true);
   n.param("filter_velocities", filter_velocities, false);
 
-  std::string vicon_quad_topic, vicon_payload_topic;
-  n.param("vicon_quad_topic", vicon_quad_topic, std::string(""));
-  n.param("vicon_payload_topic", vicon_payload_topic, std::string(""));
-
   odom_vicon_pub = n.advertise<payload_msgs::PayloadOdom>("odom_payload_vicon", 1);
   relative_pos_pub = n.advertise<geometry_msgs::Vector3Stamped>("relative_pos", 1);
 }
@@ -76,7 +72,7 @@ void whycon::ViconPublisher::vicon_publish_msg(const std_msgs::Header_<std::allo
   if (publish_observ_dir) {
     // calculate body frame observation direction and normalize
     cv::Vec3d relative_pos_bodyFrame = R_WB_.t() * (vicon_payload_pos_ - vicon_quad_pos_);
-    relative_pos_bodyFrame = cable_length_/cv::norm(relative_pos_bodyFrame);
+    relative_pos_bodyFrame *= cable_length_/cv::norm(relative_pos_bodyFrame);
     //relative_pos_bodyFrame = relative_pos_bodyFrame/cv::norm(relative_pos_bodyFrame);
 
     // create message and publish
