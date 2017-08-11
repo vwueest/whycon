@@ -66,6 +66,25 @@ void whycon::ViconPublisher::vicon_callback(const nav_msgs::OdometryConstPtr& ms
   if (std::abs(time_new_vicon_payload_ - time_new_vicon_quad_) < 1.0) {// (1.0/150.0)/2.0) {
     vicon_publish_msg(msg_quad->header);
   }
+
+//  cv::Vec3d relative_pos_bodyFrame = R_WB_.t() * (vicon_payload_pos_ - vicon_quad_pos_);
+//  relative_pos_bodyFrame *= cable_length_/cv::norm(relative_pos_bodyFrame);
+
+//  cv::Vec3d p = (vicon_payload_pos_ - vicon_quad_pos_)/cv::norm(vicon_payload_pos_ - vicon_quad_pos_);
+//  cv::Vec3d lpdot = vicon_payload_vel_ - vicon_quad_vel_;
+//  cv::Vec3d velBodyFrame = lpdot - (cable_length_*R_WB_*vicon_quad_angVel_).cross(R_WB_.t()*p);
+////  cv::Vec3d velBodyFrame = lpdot - (cable_length_*vicon_quad_angVel_).cross(R_WB_.t()*p);
+////  cv::Vec3d velBodyFrame = lpdot.cross(R_WB_*vicon_quad_angVel_);
+////  cv::Vec3d velBodyFrame = lpdot.cross(vicon_quad_angVel_);
+
+//  cv::Vec3d velBodyFrameMeas = (relative_pos_bodyFrame - relative_pos_bodyFrame_old_)/((msg_quad->header.stamp - t_old_).toSec());
+//  relative_pos_bodyFrame_old_ = relative_pos_bodyFrame;
+//  t_old_ = msg_quad->header.stamp;
+//  vel_error_ += cv::norm(velBodyFrameMeas - velBodyFrame);
+
+//  std::cout << "error vel: " << (velBodyFrameMeas - velBodyFrame).t() << std::endl;
+//  std::cout << "sum error: " << vel_error_ << std::endl;
+//  std::cout << "time:      " << msg_quad->header.stamp << std::endl;
 }
 
 void whycon::ViconPublisher::vicon_publish_msg(const std_msgs::Header_<std::allocator<void>> &header) {

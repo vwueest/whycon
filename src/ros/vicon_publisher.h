@@ -30,6 +30,9 @@ namespace whycon {
 
         void vicon_publish_msg(const std_msgs::Header_<std::allocator<void>>& header); //vicon_publish_msg(msg.header);
 
+//        cv::Vec3d relative_pos_bodyFrame_old_;
+//        double vel_error_ = 0;
+//        ros::Time t_old_;
 
     public:
         ViconPublisher(ros::NodeHandle &n);
