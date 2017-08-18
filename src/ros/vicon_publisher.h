@@ -27,6 +27,8 @@ namespace whycon {
 
         cv::Vec3d relative_ang_vel_old_, vicon_payload_vel_old_;
         double filter_a = 0.0;
+        
+        bool rel_pos_is_odd = false;
 
         void vicon_publish_msg(const std_msgs::Header_<std::allocator<void>>& header); //vicon_publish_msg(msg.header);
 

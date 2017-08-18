@@ -88,7 +88,7 @@ void whycon::ViconPublisher::vicon_callback(const nav_msgs::OdometryConstPtr& ms
 }
 
 void whycon::ViconPublisher::vicon_publish_msg(const std_msgs::Header_<std::allocator<void>> &header) {
-  if (publish_observ_dir) {
+  if (publish_observ_dir && rel_pos_is_odd) {
     // calculate body frame observation direction and normalize
     cv::Vec3d relative_pos_bodyFrame = R_WB_.t() * (vicon_payload_pos_ - vicon_quad_pos_);
     relative_pos_bodyFrame *= cable_length_/cv::norm(relative_pos_bodyFrame);
@@ -102,6 +102,9 @@ void whycon::ViconPublisher::vicon_publish_msg(const std_msgs::Header_<std::allo
     rel_pos_vec.vector.z = relative_pos_bodyFrame(2);
     rel_pos_vec.header.frame_id = std::string("0");
     relative_pos_pub.publish(rel_pos_vec);
+    rel_pos_is_odd = false;
+  } else {
+	  rel_pos_is_odd = true;
   }
   //ROS_INFO("publish");
   if (transform_to_world_frame) // in world frame
