@@ -10,6 +10,11 @@ whycon::ViconPublisher::ViconPublisher(ros::NodeHandle &n) {
 
   odom_vicon_pub = n.advertise<payload_msgs::PayloadOdom>("odom_payload_vicon", 1);
   relative_pos_pub = n.advertise<geometry_msgs::Vector3Stamped>("relative_pos", 1);
+  vicon_pos_body_pub = n.advertise<geometry_msgs::Vector3Stamped>("vicon_pos_body", 1);
+  vicon_vel_body_pub = n.advertise<geometry_msgs::Vector3Stamped>("vicon_vel_body", 1);
+
+  meas_error_pos_pub = n.advertise<geometry_msgs::Vector3Stamped>("meas_error_pos", 1);
+  meas_error_vel_pub = n.advertise<geometry_msgs::Vector3Stamped>("meas_error_vel", 1);
 }
 
 void whycon::ViconPublisher::vicon_callback(const nav_msgs::OdometryConstPtr& msg_quad, const nav_msgs::OdometryConstPtr& msg_payload) {
@@ -84,7 +89,39 @@ void whycon::ViconPublisher::vicon_callback(const nav_msgs::OdometryConstPtr& ms
 
 //  std::cout << "error vel: " << (velBodyFrameMeas - velBodyFrame).t() << std::endl;
 //  std::cout << "sum error: " << vel_error_ << std::endl;
-//  std::cout << "time:      " << msg_quad->header.stamp << std::endl;
+  //  std::cout << "time:      " << msg_quad->header.stamp << std::endl;
+}
+
+void whycon::ViconPublisher::synced_pos_callback(const geometry_msgs::Vector3StampedConstPtr &msg_vicon, const geometry_msgs::Vector3StampedConstPtr &msg_cam)
+{
+  bool publish_meas_error_pos = (meas_error_pos_pub.getNumSubscribers() != 0);
+  if (publish_meas_error_pos) {
+    cv::Vec3d vicon(msg_vicon->vector.x,msg_vicon->vector.y,msg_vicon->vector.z);
+    cv::Vec3d cam(msg_cam->vector.x,msg_cam->vector.y,msg_cam->vector.z);
+    cv::Vec3d error = cam - vicon;
+    geometry_msgs::Vector3Stamped msg_error;
+    msg_error.header = msg_cam->header;
+    msg_error.vector.x = error(0);
+    msg_error.vector.y = error(1);
+    msg_error.vector.z = error(2);
+    meas_error_pos_pub.publish(msg_error);
+  }
+}
+
+void whycon::ViconPublisher::synced_vel_callback(const geometry_msgs::Vector3StampedConstPtr &msg_vicon, const geometry_msgs::Vector3StampedConstPtr &msg_cam)
+{
+  bool publish_meas_error_vel = (meas_error_vel_pub.getNumSubscribers() != 0);
+  if (publish_meas_error_vel) {
+    cv::Vec3d vicon(msg_vicon->vector.x,msg_vicon->vector.y,msg_vicon->vector.z);
+    cv::Vec3d cam(msg_cam->vector.x,msg_cam->vector.y,msg_cam->vector.z);
+    cv::Vec3d error = cam - vicon;
+    geometry_msgs::Vector3Stamped msg_error;
+    msg_error.header = msg_cam->header;
+    msg_error.vector.x = error(0);
+    msg_error.vector.y = error(1);
+    msg_error.vector.z = error(2);
+    meas_error_vel_pub.publish(msg_error);
+  }
 }
 
 void whycon::ViconPublisher::vicon_publish_msg(const std_msgs::Header_<std::allocator<void>> &header) {
@@ -107,20 +144,39 @@ void whycon::ViconPublisher::vicon_publish_msg(const std_msgs::Header_<std::allo
 	  rel_pos_is_odd = true;
   }
   //ROS_INFO("publish");
-  if (transform_to_world_frame) // in world frame
-    relative_pos_outputFrame = vicon_payload_pos_ - vicon_quad_pos_;
-  else // in body frame
-    relative_pos_outputFrame = R_WB_.t() * (vicon_payload_pos_ - vicon_quad_pos_);
+  relative_pos_worldFrame = vicon_payload_pos_ - vicon_quad_pos_;
 
-  relative_pos_outputFrame = relative_pos_outputFrame *
-                             (cable_length_ + distance_tag_CoG_) / cv::norm(relative_pos_outputFrame);
+  relative_pos_worldFrame = relative_pos_worldFrame *
+                             (cable_length_ + distance_tag_CoG_) / cv::norm(relative_pos_worldFrame);
 
   // calculate relative velocity
-  if (transform_to_world_frame) // in world frame
-    relative_vel_outputFrame = vicon_payload_vel_ - vicon_quad_vel_;
-  else // in body frame
-    relative_vel_outputFrame = (R_WB_.t() * (vicon_payload_vel_ - vicon_quad_vel_)) + \
-                               (R_WB_.t() * (vicon_payload_pos_ - vicon_quad_pos_).cross(vicon_quad_angVel_));
+  relative_vel_worldFrame = vicon_payload_vel_ - vicon_quad_vel_;
+
+  cv::Vec3d relative_pos_bodyFrame = R_WB_.t() * relative_pos_worldFrame;
+  cv::Vec3d relative_vel_bodyFrame = R_WB_.t() * relative_vel_worldFrame*(cable_length_ + distance_tag_CoG_) / cv::norm(relative_pos_worldFrame)
+                                    - vicon_quad_angVel_.cross(R_WB_.t()*relative_pos_worldFrame);
+
+  bool publish_vicon_pos_body = (vicon_pos_body_pub.getNumSubscribers() != 0);
+  if (publish_vicon_pos_body) {
+    geometry_msgs::Vector3Stamped msg_pos;
+    msg_pos.header = header;
+    cv::Vec3d relative_pos_bodyFrame_normalized = relative_pos_bodyFrame/cv::norm(relative_pos_bodyFrame);
+    msg_pos.vector.x = relative_pos_bodyFrame_normalized(0);
+    msg_pos.vector.y = relative_pos_bodyFrame_normalized(1);
+    msg_pos.vector.z = relative_pos_bodyFrame_normalized(2);
+    vicon_pos_body_pub.publish(msg_pos);
+  }
+
+  bool publish_vicon_vel_body = (vicon_vel_body_pub.getNumSubscribers() != 0);
+  if (publish_vicon_vel_body) {
+    geometry_msgs::Vector3Stamped msg_vel;
+    msg_vel.header = header;
+    cv::Vec3d relative_vel_bodyFrame_normalized = relative_vel_bodyFrame/cv::norm(relative_pos_bodyFrame);
+    msg_vel.vector.x = relative_vel_bodyFrame_normalized(0);
+    msg_vel.vector.y = relative_vel_bodyFrame_normalized(1);
+    msg_vel.vector.z = relative_vel_bodyFrame_normalized(2);
+    vicon_vel_body_pub.publish(msg_vel);
+  }
 
   // calculate relative angular velocity
   relative_ang_vel = (vicon_payload_pos_ - vicon_quad_pos_).cross(vicon_payload_vel_ - vicon_quad_vel_) /
@@ -147,12 +203,12 @@ void whycon::ViconPublisher::vicon_publish_msg(const std_msgs::Header_<std::allo
   // fill in data
   payload_msgs::PayloadOdom payload_vicon;
 
-  payload_vicon.pose_payload.pose.position.x = relative_pos_outputFrame(0) + vicon_quad_pos_(0); //vicon_quad_pos_(0); //relative_pos_outputFrame(0)+vicon_quad_pos_(0);
-  payload_vicon.pose_payload.pose.position.y = relative_pos_outputFrame(1) + vicon_quad_pos_(1); //vicon_quad_pos_(1); //relative_pos_outputFrame(1)+vicon_quad_pos_(1);
-  payload_vicon.pose_payload.pose.position.z = relative_pos_outputFrame(2) + vicon_quad_pos_(2); //vicon_quad_pos_(2)-cable_length_-distance_tag_CoG_; //relative_pos_outputFrame(2)+vicon_quad_pos_(2);
+  payload_vicon.pose_payload.pose.position.x = relative_pos_worldFrame(0) + vicon_quad_pos_(0); //vicon_quad_pos_(0); //relative_pos_outputFrame(0)+vicon_quad_pos_(0);
+  payload_vicon.pose_payload.pose.position.y = relative_pos_worldFrame(1) + vicon_quad_pos_(1); //vicon_quad_pos_(1); //relative_pos_outputFrame(1)+vicon_quad_pos_(1);
+  payload_vicon.pose_payload.pose.position.z = relative_pos_worldFrame(2) + vicon_quad_pos_(2); //vicon_quad_pos_(2)-cable_length_-distance_tag_CoG_; //relative_pos_outputFrame(2)+vicon_quad_pos_(2);
 
-  payload_vicon.pose_payload.pose.orientation.x =  atan2(relative_pos_outputFrame(1), -relative_pos_outputFrame(2)); //0.0; // atan2(relative_pos_outputFrame(1), -relative_pos_outputFrame(2));
-  payload_vicon.pose_payload.pose.orientation.y = -atan2(relative_pos_outputFrame(0), -relative_pos_outputFrame(2)); //0.0; //-atan2(relative_pos_outputFrame(0), -relative_pos_outputFrame(2));
+  payload_vicon.pose_payload.pose.orientation.x =  atan2(relative_pos_worldFrame(1), -relative_pos_worldFrame(2)); //0.0; // atan2(relative_pos_outputFrame(1), -relative_pos_outputFrame(2));
+  payload_vicon.pose_payload.pose.orientation.y = -atan2(relative_pos_worldFrame(0), -relative_pos_worldFrame(2)); //0.0; //-atan2(relative_pos_outputFrame(0), -relative_pos_outputFrame(2));
   payload_vicon.pose_payload.pose.orientation.z = 0.0;
   payload_vicon.pose_payload.pose.orientation.w = std::sqrt(1.0-std::pow(payload_vicon.pose_payload.pose.orientation.x,2)-std::pow(payload_vicon.pose_payload.pose.orientation.y,2));
 

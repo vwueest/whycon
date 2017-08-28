@@ -23,7 +23,7 @@ namespace whycon {
         cv::Matx33d R_WB_;
         cv::Vec4d vicon_quad_angle_;
         cv::Vec3d vicon_quad_pos_, vicon_quad_vel_, vicon_quad_angVel_, vicon_payload_pos_, vicon_payload_vel_;
-        cv::Vec3d relative_pos_outputFrame, relative_vel_outputFrame, relative_ang_vel;
+        cv::Vec3d relative_pos_worldFrame, relative_vel_worldFrame, relative_ang_vel;
 
         cv::Vec3d relative_ang_vel_old_, vicon_payload_vel_old_;
         double filter_a = 0.0;
@@ -41,7 +41,15 @@ namespace whycon {
 
         void vicon_callback(const nav_msgs::OdometryConstPtr& msg_quad, const nav_msgs::OdometryConstPtr& msg_payload);
 
-        ros::Publisher odom_vicon_pub, relative_pos_pub;
+        void synced_pos_callback(const geometry_msgs::Vector3StampedConstPtr& msg_vicon, const geometry_msgs::Vector3StampedConstPtr& msg_cam);
+        void synced_vel_callback(const geometry_msgs::Vector3StampedConstPtr& msg_vicon, const geometry_msgs::Vector3StampedConstPtr& msg_cam);
+
+        ros::Publisher odom_vicon_pub,
+                       relative_pos_pub,
+                       vicon_pos_body_pub,
+                       vicon_vel_body_pub,
+                       meas_error_pos_pub,
+                       meas_error_vel_pub;
     };
 }
 
