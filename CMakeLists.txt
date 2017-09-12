@@ -82,6 +82,7 @@ if(NOT DISABLE_ROS)
   #add_executable(triangulator src/ros/triangulator_node.cpp src/ros/triangulator.cpp)
   add_executable(robot_pose_publisher src/ros/robot_pose_publisher.cpp src/ros/robot_pose_publisher_node.cpp)
   add_executable(vicon_publisher src/ros/vicon_publisher.cpp src/ros/vicon_publisher_node.cpp)
+  add_executable(comparer src/ros/comparer.cpp src/ros/comparer_node.cpp)
   add_executable(transformer src/ros/transformer.cpp src/ros/transformer_node.cpp)
 
   add_dependencies(whycon-node whycon_generate_messages_cpp)
@@ -90,6 +91,7 @@ if(NOT DISABLE_ROS)
   #add_dependencies(triangulator whycon_generate_messages_cpp)
   add_dependencies(robot_pose_publisher whycon_generate_messages_cpp)
   add_dependencies(vicon_publisher whycon_generate_messages_cpp)
+  add_dependencies(comparer whycon_generate_messages_cpp)
   add_dependencies(transformer whycon_generate_messages_cpp)
 
   target_link_libraries(whycon-node ${catkin_LIBRARIES} ${YAML_CPP_LIBRARIES} whycon)
@@ -99,6 +101,7 @@ if(NOT DISABLE_ROS)
   #target_link_libraries(triangulator ${catkin_LIBRARIES} whycon)
   target_link_libraries(robot_pose_publisher ${catkin_LIBRARIES} whycon)
   target_link_libraries(vicon_publisher ${catkin_LIBRARIES} whycon)
+  target_link_libraries(comparer ${catkin_LIBRARIES} whycon)
 else()
   add_executable(whycon-main src/main.cpp)
   set_target_properties(whycon-main PROPERTIES OUTPUT_NAME whycon)
@@ -116,7 +119,7 @@ if(NOT DISABLE_ROS)
     DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
   )
   ## Mark executables and/or libraries for installation
-  install(TARGETS whycon whycon-node robot_pose_publisher vicon_publisher #triangulator
+  install(TARGETS whycon whycon-node robot_pose_publisher vicon_publisher comparer #triangulator
     ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
     LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
     RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
