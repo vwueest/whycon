@@ -35,16 +35,9 @@ whycon::AxisSetter::AxisSetter(ros::NodeHandle &n)
 		if (axis_order.size() != 4) throw std::runtime_error("Exactly four indices are needed for specifying axis");
 	}
 
-    poses_sub = n.subscribe("/whycon/poses", 1, &AxisSetter::on_poses, this);
-
-    bool use_omni_model;
-    n.param("use_omni_model", use_omni_model, false);
-    if (use_omni_model) {
-        image_sub = n.subscribe("/camera/image_raw", 1, &AxisSetter::on_image, this);
-    } else {
-        image_sub = n.subscribe("/camera/image_rect_color", 1, &AxisSetter::on_image, this);
-    }
-    image_pub = n.advertise<sensor_msgs::Image>("image", 1);
+	poses_sub = n.subscribe("/whycon/poses", 1, &AxisSetter::on_poses, this);
+	image_sub = n.subscribe("/camera/image_rect_color", 1, &AxisSetter::on_image, this);
+	image_pub = n.advertise<sensor_msgs::Image>("image", 1);
 }
 
 /**

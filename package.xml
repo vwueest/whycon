@@ -25,9 +25,6 @@
   <build_depend>tf</build_depend>
   <build_depend>visualization_msgs</build_depend>
   <build_depend>nodelet</build_depend>
-  <build_depend>eigen</build_depend>
-  <build_depend>cmake_modules</build_depend>
-  <build_depend>payload_msgs</build_depend>
 
   <run_depend>message_runtime</run_depend>
   <run_depend>cv_bridge</run_depend>
@@ -41,7 +38,6 @@
   <run_depend>visualization_msgs</run_depend>
   <run_depend>tf</run_depend>
   <run_depend>nodelet</run_depend>
-  <run_depend>payload_msgs</run_depend>
 
   <build_depend>geometry_msgs</build_depend>
   <build_depend>image_transport</build_depend>
