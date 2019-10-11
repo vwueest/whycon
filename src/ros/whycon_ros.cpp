@@ -41,7 +41,7 @@ whycon::WhyConROS::WhyConROS(ros::NodeHandle& n) : is_tracking(false), should_re
   /* initialize ros */
   int input_queue_size = 1;
   n.param("input_queue_size", input_queue_size, input_queue_size);
-  cam_sub = it.subscribeCamera("/downward/image_raw", input_queue_size, boost::bind(&WhyConROS::on_image, this, _1, _2));
+  cam_sub = it.subscribeCamera(topic.c_str(), input_queue_size, boost::bind(&WhyConROS::on_image, this, _1, _2));
   
   image_pub = n.advertise<sensor_msgs::Image>("image_out", 1);
   poses_pub = n.advertise<geometry_msgs::PoseArray>("poses", 1);
