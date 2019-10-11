@@ -1,0 +1,18 @@
+<launch>
+  <arg name="name" default="whycon"/>
+  <arg name="targets" default="1"/>
+  <arg name="image_topic" default="/downward/image_raw"/>
+  <arg name="outer_diameter" default="0.122"/>
+  <arg name="inner_diameter" default="0.050"/>
+
+  <node name="whycon" type="whycon" pkg="whycon" output="screen">
+    <param name="targets" value="$(arg targets)"/>
+    <param name="name" value="$(arg name)"/>
+    <param name="outer_diameter" value="$(arg outer_diameter)"/>
+    <param name="inner_diameter" value="$(arg inner_diameter)"/>
+    <!--param name="max_refine" value="5"/-->
+    <!--param name="max_attempts" value="5"/-->
+    <param name="image_topic" value="$(arg image_topic)"/>
+  </node>
+
+</launch>
