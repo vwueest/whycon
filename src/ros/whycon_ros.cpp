@@ -43,7 +43,7 @@ whycon::WhyConROS::WhyConROS(ros::NodeHandle& n) : is_tracking(false), should_re
   n.param("input_queue_size", input_queue_size, input_queue_size);
   cam_sub = it.subscribeCamera(topic.c_str(), input_queue_size, boost::bind(&WhyConROS::on_image, this, _1, _2));
   
-  image_pub = n.advertise<sensor_msgs::Image>("image_out", 1);
+  image_pub = it.advertise("image_out", 1);
   poses_pub = n.advertise<geometry_msgs::PoseArray>("poses", 1);
   context_pub = n.advertise<sensor_msgs::Image>("context", 1);
 	projection_pub = n.advertise<whycon::Projection>("projection", 1);
@@ -68,8 +68,9 @@ void whycon::WhyConROS::on_image(const sensor_msgs::ImageConstPtr& image_msg, co
     publish_results(image_msg->header, cv_ptr);
     should_reset = false;
   }
-  else if (image_pub.getNumSubscribers() != 0)
-    image_pub.publish(cv_ptr);
+  else if (image_pub.getNumSubscribers() != 0) {
+    image_pub.publish(image_msg);
+  }
 
   if (context_pub.getNumSubscribers() != 0) {
     cv_bridge::CvImage cv_img_context;
@@ -128,9 +129,10 @@ void whycon::WhyConROS::publish_results(const std_msgs::Header& header, const cv
   }
 
   if (publish_images) {
-    cv_bridge::CvImage output_image_bridge = *cv_ptr;
-    output_image_bridge.image = output_image;
-    image_pub.publish(output_image_bridge);
+    //cv_bridge::CvImage output_image_bridge = *cv_ptr;
+    //output_image_bridge.image = output_image;
+    sensor_msgs::ImagePtr msg = cv_bridge::CvImage(header, "bgr8", output_image).toImageMsg();
+    image_pub.publish(msg);
   }
 
   if (publish_poses) {
