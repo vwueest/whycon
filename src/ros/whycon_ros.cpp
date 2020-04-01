@@ -4,6 +4,7 @@
 #include <tf/tf.h>
 #include <sstream>
 #include <geometry_msgs/PoseArray.h>
+#include <geometry_msgs/PoseStamped.h>
 #include <yaml-cpp/yaml.h>
 #include <whycon/Projection.h>
 #include "whycon_ros.h"
@@ -45,6 +46,7 @@ whycon::WhyConROS::WhyConROS(ros::NodeHandle& n) : is_tracking(false), should_re
   
   image_pub = n.advertise<sensor_msgs::Image>("image_out", 1);
   poses_pub = n.advertise<geometry_msgs::PoseArray>("poses", 1);
+  pose_pub = n.advertise<geometry_msgs::PoseStamped>("pose", 1);
   context_pub = n.advertise<sensor_msgs::Image>("context", 1);
 	projection_pub = n.advertise<whycon::Projection>("projection", 1);
 
@@ -90,6 +92,7 @@ void whycon::WhyConROS::publish_results(const std_msgs::Header& header, const cv
 {
   bool publish_images = (image_pub.getNumSubscribers() != 0);
   bool publish_poses = (poses_pub.getNumSubscribers() != 0);
+  bool publish_pose = (pose_pub.getNumSubscribers() != 0);
   
   if (!publish_images && !publish_poses) return;
   
@@ -99,6 +102,7 @@ void whycon::WhyConROS::publish_results(const std_msgs::Header& header, const cv
     output_image = cv_ptr->image.clone();
 
   geometry_msgs::PoseArray pose_array;
+  geometry_msgs::PoseStamped pose_stamped;
   
   // go through detected targets
   for (int i = 0; i < system->targets; i++) {
@@ -117,12 +121,13 @@ void whycon::WhyConROS::publish_results(const std_msgs::Header& header, const cv
 			cv::circle(output_image, camera_model.project3dToPixel(cv::Point3d(coord)), 1, cv::Scalar(255,0,255), 1, CV_AA);
     }
 
-    if (publish_poses) {
+    if (publish_poses || publish_pose) {
       geometry_msgs::Pose p;
       p.position.x = pose.pos(0);
       p.position.y = pose.pos(1);
       p.position.z = pose.pos(2);
       p.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, pose.rot(0), pose.rot(1));
+      pose_stamped.pose = p;
       pose_array.poses.push_back(p);
     }
   }
@@ -130,13 +135,17 @@ void whycon::WhyConROS::publish_results(const std_msgs::Header& header, const cv
   if (publish_images) {
     cv_bridge::CvImage output_image_bridge = *cv_ptr;
     output_image_bridge.image = output_image;
+    output_image_bridge.header = header;
     image_pub.publish(output_image_bridge);
   }
 
-  if (publish_poses) {
+  if (publish_poses || publish_pose) {
     pose_array.header = header;
     pose_array.header.frame_id = frame_id;
     poses_pub.publish(pose_array);
+    pose_stamped.header = header;
+    pose_stamped.header.frame_id = frame_id;
+    pose_pub.publish(pose_stamped);
   }
 
   if (transformation_loaded)
