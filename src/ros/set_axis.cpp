@@ -3,6 +3,9 @@
 #include <fstream>
 #include "set_axis.h"
 
+#define CV_LMEDS cv::LMEDS
+#define CV_AA cv::LINE_AA
+
 namespace std {
 	std::ostream& operator<<(std::ostream& str, const tf::Matrix3x3& m)
 	{

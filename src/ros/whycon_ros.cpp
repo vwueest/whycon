@@ -9,6 +9,8 @@
 #include <whycon/Projection.h>
 #include "whycon_ros.h"
 
+#define CV_AA cv::LINE_AA
+
 whycon::WhyConROS::WhyConROS(ros::NodeHandle& n) : is_tracking(false), should_reset(true), it(n)
 {
 	transformation_loaded = false;
