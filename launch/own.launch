@@ -6,6 +6,7 @@
   <arg name="image_topic" default="/downward/image_raw"/>
   <arg name="outer_diameter" default="0.122"/>
   <arg name="inner_diameter" default="0.050"/>
+  <arg name="publish_compressed" default="false"/>
 
   <node name="whycon" type="whycon" pkg="whycon" output="screen">
     <param name="targets" value="$(arg targets)"/>
@@ -17,6 +18,6 @@
     <param name="image_topic" value="$(arg image_topic)"/>
   </node>
 
-  <node pkg="image_transport" name="republish" type="republish" output="screen" args="raw in:=/whycon/image_out compressed out:=/whycon/image_out"/>
+  <node pkg="image_transport" name="republish" type="republish" output="screen" args="raw in:=/whycon/image_out compressed out:=/whycon/image_out" if="$(arg publish_compressed)"/>
 
 </launch>
