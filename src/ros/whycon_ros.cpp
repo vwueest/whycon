@@ -64,7 +64,7 @@ void whycon::WhyConROS::on_image(const sensor_msgs::ImageConstPtr& image_msg, co
   const cv::Mat& image = cv_ptr->image;
 
   if (!system)
-    system = boost::make_shared<whycon::LocalizationSystem>(targets, image.size().width, image.size().height, cv::Mat(camera_model.fullIntrinsicMatrix()), cv::Mat(camera_model.distortionCoeffs()), parameters);
+    system = boost::make_shared<whycon::LocalizationSystem>(targets, image.size().width, image.size().height, cv::Mat(camera_model.intrinsicMatrix()), cv::Mat(camera_model.distortionCoeffs()), parameters);
 
   is_tracking = system->localize(image, should_reset/*!is_tracking*/, max_attempts, max_refine);
 

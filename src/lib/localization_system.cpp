@@ -158,6 +158,7 @@ void whycon::LocalizationSystem::transform(double x_in, double y_in, double& x_o
 
 void whycon::LocalizationSystem::precompute_undistort_map(void)
 {
+  std::cout << height << " " << width << std::endl;
   undistort_map.create(height, width, CV_32FC2);
   for (int i = 0; i < height; i++) {
     std::vector<cv::Vec2f> coords_in(width);
